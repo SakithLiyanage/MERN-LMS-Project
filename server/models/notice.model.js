@@ -4,17 +4,19 @@ const noticeSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, 'Notice title is required'],
+      required: [true, 'Please provide a title'],
       trim: true,
+      maxlength: [100, 'Title cannot be more than 100 characters'],
     },
     content: {
       type: String,
-      required: [true, 'Notice content is required'],
+      required: [true, 'Please provide content'],
+      trim: true,
     },
-    course: {
+    courseId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
-      default: null, // null means it's a global notice
+      required: [true, 'Please provide course ID'],
     },
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -24,19 +26,19 @@ const noticeSchema = new mongoose.Schema(
     priority: {
       type: String,
       enum: ['low', 'medium', 'high'],
-      default: 'medium',
+      default: 'low',
     },
-    attachments: [{
-      type: String
-    }],
     pinned: {
       type: Boolean,
       default: false,
     },
-    readBy: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    }],
+    attachments: [
+      {
+        fileName: String,
+        fileUrl: String,
+        fileType: String,
+      },
+    ],
   },
   { timestamps: true }
 );

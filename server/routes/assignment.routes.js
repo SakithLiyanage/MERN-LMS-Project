@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  createAssignment,
-  getTeacherAssignments,
-  getStudentAssignments,
+const {
+  getAssignments,
   getAssignment,
+  createAssignment,
   updateAssignment,
   deleteAssignment,
   submitAssignment,
@@ -12,20 +11,23 @@ const {
 } = require('../controllers/assignment.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
-// Teacher routes
-router.post('/', protect, authorize('teacher', 'admin'), createAssignment);
-router.get('/teacher', protect, authorize('teacher', 'admin'), getTeacherAssignments);
-router.put('/:id', protect, authorize('teacher', 'admin'), updateAssignment);
-router.delete('/:id', protect, authorize('teacher', 'admin'), deleteAssignment);
+// Basic routes
+router.route('/')
+  .get(protect, getAssignments)
+  .post(protect, authorize('teacher', 'admin'), createAssignment);
 
-// Student routes
-router.get('/student', protect, authorize('student'), getStudentAssignments);
-router.post('/:id/submit', protect, authorize('student'), submitAssignment);
+// Single assignment routes
+router.route('/:id')
+  .get(protect, getAssignment)
+  .put(protect, authorize('teacher', 'admin'), updateAssignment)
+  .delete(protect, authorize('teacher', 'admin'), deleteAssignment);
 
-// Routes for both teachers and students
-router.get('/:id', protect, getAssignment);
+// Submission routes
+router.route('/:id/submit')
+  .post(protect, authorize('student'), submitAssignment);
 
-// Grading submissions
-router.put('/submissions/:id/grade', protect, authorize('teacher', 'admin'), gradeSubmission);
+// Grading routes
+router.route('/:id/grade/:submissionId')
+  .put(protect, authorize('teacher', 'admin'), gradeSubmission);
 
 module.exports = router;

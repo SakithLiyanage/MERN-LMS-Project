@@ -1,89 +1,49 @@
 const Assignment = require('../models/assignment.model');
 const Course = require('../models/course.model');
-const fs = require('fs');
-const path = require('path');
 
-// Helper function to create directories if they don't exist
-const ensureDirectoryExists = (directory) => {
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory, { recursive: true });
-  }
-};
-
-// @desc    Create new assignment
-// @route   POST /api/assignments
-// @access  Private/Teacher
-exports.createAssignment = async (req, res) => {
+// @desc    Get all assignments
+// @route   GET /api/assignments
+// @access  Private
+exports.getAssignments = async (req, res) => {
   try {
-    const { title, description, course, deadline, totalPoints } = req.body;
+    console.log('Getting assignments');
+    let assignments;
     
-    // Check if user is the teacher of the course
-    const courseDoc = await Course.findById(course);
-    if (!courseDoc) {
-      return res.status(404).json({ message: 'Course not found' });
+    if (req.user.role === 'teacher') {
+      // Teachers see assignments for their courses
+      const teacherCourses = await Course.find({ teacher: req.user.id }).select('_id');
+      const courseIds = teacherCourses.map(course => course._id);
+      
+      assignments = await Assignment.find({ courseId: { $in: courseIds } })
+        .populate('courseId', 'title code')
+        .sort('-createdAt');
+    } else if (req.user.role === 'student') {
+      // Students see assignments for courses they're enrolled in
+      const studentCourses = await Course.find({ students: req.user.id }).select('_id');
+      const courseIds = studentCourses.map(course => course._id);
+      
+      assignments = await Assignment.find({ courseId: { $in: courseIds } })
+        .populate('courseId', 'title code')
+        .sort('-createdAt');
+    } else {
+      // Admins see all assignments
+      assignments = await Assignment.find()
+        .populate('courseId', 'title code')
+        .sort('-createdAt');
     }
     
-    // Create new assignment
-    const assignment = new Assignment({
-      title,
-      description,
-      course,
-      deadline,
-      totalPoints,
-      teacher: req.user.id,
-    });
-    
-    await assignment.save();
-    
-    res.status(201).json({
-      success: true,
-      assignment,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// @desc    Get all assignments for a teacher
-// @route   GET /api/assignments/teacher
-// @access  Private/Teacher
-exports.getTeacherAssignments = async (req, res) => {
-  try {
-    const assignments = await Assignment.find({ teacher: req.user.id })
-      .populate('course', 'title code')
-      .sort('-createdAt');
-    
-    res.json({
+    res.status(200).json({
       success: true,
       count: assignments.length,
-      assignments,
+      data: assignments
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// @desc    Get all assignments for a student
-// @route   GET /api/assignments/student
-// @access  Private/Student
-exports.getStudentAssignments = async (req, res) => {
-  try {
-    const assignments = await Assignment.find({ 
-        course: { $in: req.user.courses } 
-      })
-      .populate('course', 'title code')
-      .sort('-createdAt');
-    
-    res.json({
-      success: true,
-      count: assignments.length,
-      assignments,
+    console.error('Error getting assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -93,20 +53,89 @@ exports.getStudentAssignments = async (req, res) => {
 exports.getAssignment = async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id)
-      .populate('course', 'title code')
-      .populate('teacher', 'name email');
-    
+      .populate('courseId', 'title code teacher')
+      .populate('submissions.student', 'name email');
+      
     if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
     }
     
-    res.json({
+    res.status(200).json({
       success: true,
-      assignment,
+      data: assignment
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error getting assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Create new assignment
+// @route   POST /api/assignments
+// @access  Private/Teacher
+exports.createAssignment = async (req, res) => {
+  try {
+    console.log('Create assignment request:', req.body);
+    const { title, description, courseId, dueDate, totalPoints, attachments } = req.body;
+    
+    // Validate required fields
+    if (!title || !courseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide title and course ID'
+      });
+    }
+    
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
+    
+    // Check if user is the teacher of the course
+    if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to create assignments for this course'
+      });
+    }
+    
+    // Create assignment
+    const assignment = await Assignment.create({
+      title,
+      description,
+      courseId,
+      dueDate,
+      totalPoints: totalPoints || 100,
+      attachments: attachments || [],
+      createdBy: req.user.id
+    });
+    
+    // Add assignment to course
+    course.assignments.push(assignment._id);
+    await course.save();
+    
+    res.status(201).json({
+      success: true,
+      data: assignment
+    });
+  } catch (error) {
+    console.error('Error creating assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
@@ -115,38 +144,49 @@ exports.getAssignment = async (req, res) => {
 // @access  Private/Teacher
 exports.updateAssignment = async (req, res) => {
   try {
-    const { title, description, course, deadline, totalPoints } = req.body;
-    const assignmentId = req.params.id;
-    
-    // Find assignment
-    const assignment = await Assignment.findById(assignmentId);
+    let assignment = await Assignment.findById(req.params.id);
     
     if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
     }
     
-    // Check if user is the teacher of the assignment
-    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to update this assignment' });
+    // Check course ownership
+    const course = await Course.findById(assignment.courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
     }
     
-    // Update assignment fields
-    assignment.title = title || assignment.title;
-    assignment.description = description || assignment.description;
-    assignment.course = course || assignment.course;
-    assignment.deadline = deadline || assignment.deadline;
-    assignment.totalPoints = totalPoints || assignment.totalPoints;
+    // Check if user is authorized
+    if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this assignment'
+      });
+    }
     
-    await assignment.save();
+    assignment = await Assignment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
     
-    res.json({
+    res.status(200).json({
       success: true,
-      message: 'Assignment updated successfully',
-      assignment,
+      data: assignment
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
@@ -158,163 +198,181 @@ exports.deleteAssignment = async (req, res) => {
     const assignment = await Assignment.findById(req.params.id);
     
     if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
     }
     
-    // Check if user is the teacher of the assignment
-    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to delete this assignment' });
+    // Check course ownership
+    const course = await Course.findById(assignment.courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
     }
     
-    // Delete assignment files
-    if (assignment.attachments && assignment.attachments.length > 0) {
-      for (const file of assignment.attachments) {
-        const filePath = path.join(__dirname, '../uploads', file);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
+    // Check if user is authorized
+    if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this assignment'
+      });
     }
     
-    // Delete submissions files
-    if (assignment.submissions && assignment.submissions.length > 0) {
-      for (const submission of assignment.submissions) {
-        const filePath = path.join(__dirname, '../uploads', submission.file);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-    }
+    // Remove assignment from course
+    course.assignments = course.assignments.filter(
+      id => id.toString() !== assignment._id.toString()
+    );
+    await course.save();
     
     // Delete assignment
-    await assignment.remove();
+    await Assignment.findByIdAndDelete(req.params.id);
     
-    res.json({
+    res.status(200).json({
       success: true,
-      message: 'Assignment deleted successfully',
+      message: 'Assignment deleted successfully'
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error deleting assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// @desc    Submit assignment (student)
+// @desc    Submit assignment
 // @route   POST /api/assignments/:id/submit
 // @access  Private/Student
 exports.submitAssignment = async (req, res) => {
   try {
+    const { content, attachments } = req.body;
     const assignment = await Assignment.findById(req.params.id);
     
     if (!assignment) {
-      return res.status(404).json({ message: 'Assignment not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
     }
     
-    // Check if deadline has passed
-    const now = new Date();
-    if (now > new Date(assignment.deadline)) {
-      return res.status(400).json({ message: 'Assignment deadline has passed' });
+    // Check if due date has passed
+    if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assignment due date has passed'
+      });
     }
     
     // Check if student is enrolled in the course
-    const course = await Course.findById(assignment.course);
-    if (!course.students.includes(req.user.id)) {
-      return res.status(403).json({ message: 'Not enrolled in this course' });
-    }
-    
-    // Check if student has already submitted
-    const alreadySubmitted = assignment.submissions.some(
-      submission => submission.student.toString() === req.user.id
+    const course = await Course.findById(assignment.courseId);
+    const isEnrolled = course.students.some(
+      student => student.toString() === req.user.id
     );
     
-    if (alreadySubmitted) {
-      return res.status(400).json({ message: 'You have already submitted this assignment' });
+    if (!isEnrolled && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course'
+      });
     }
     
-    // Handle file upload
-    if (!req.files || !req.files.file) {
-      return res.status(400).json({ message: 'Please upload a file' });
+    // Check if submission already exists
+    const existingSubmission = assignment.submissions.find(
+      sub => sub.student.toString() === req.user.id
+    );
+    
+    if (existingSubmission) {
+      // Update existing submission
+      existingSubmission.content = content;
+      existingSubmission.attachments = attachments || [];
+      existingSubmission.submittedAt = Date.now();
+      // Reset grade info on resubmission
+      existingSubmission.grade = undefined;
+      existingSubmission.feedback = undefined;
+      existingSubmission.gradedAt = undefined;
+    } else {
+      // Add new submission
+      assignment.submissions.push({
+        student: req.user.id,
+        content,
+        attachments: attachments || [],
+        submittedAt: Date.now()
+      });
     }
     
-    const file = req.files.file;
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    const filename = `submission_${req.user.id}_${uniqueSuffix}_${file.name.replace(/\s+/g, '_')}`;
-    
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(__dirname, '../uploads/submissions');
-    ensureDirectoryExists(uploadsDir);
-    
-    // Save file
-    const filepath = path.join(uploadsDir, filename);
-    await file.mv(filepath);
-    
-    // Create submission
-    const submission = {
-      student: req.user.id,
-      file: `submissions/${filename}`,
-      submittedAt: Date.now(),
-    };
-    
-    // Add submission to assignment
-    assignment.submissions.push(submission);
     await assignment.save();
     
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: 'Assignment submitted successfully',
-      submission,
+      data: assignment
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error submitting assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
 // @desc    Grade submission
-// @route   PUT /api/submissions/:id/grade
+// @route   PUT /api/assignments/:id/grade/:submissionId
 // @access  Private/Teacher
 exports.gradeSubmission = async (req, res) => {
   try {
     const { grade, feedback } = req.body;
-    const submissionId = req.params.id;
-    
-    // Find assignment with the submission
-    const assignment = await Assignment.findOne({
-      'submissions._id': submissionId
-    });
+    const assignment = await Assignment.findById(req.params.id);
     
     if (!assignment) {
-      return res.status(404).json({ message: 'Submission not found' });
-    }
-    
-    // Check if user is the teacher of the assignment
-    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to grade this submission' });
-    }
-    
-    // Validate grade
-    const numGrade = Number(grade);
-    if (isNaN(numGrade) || numGrade < 0 || numGrade > assignment.totalPoints) {
-      return res.status(400).json({ 
-        message: `Grade must be a number between 0 and ${assignment.totalPoints}` 
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
       });
     }
     
-    // Update the submission
-    const submission = assignment.submissions.id(submissionId);
-    submission.grade = numGrade;
-    submission.feedback = feedback || '';
-    submission.graded = true;
+    // Check course ownership
+    const course = await Course.findById(assignment.courseId);
+    if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to grade submissions for this assignment'
+      });
+    }
+    
+    // Find submission by ID
+    const submission = assignment.submissions.id(req.params.submissionId);
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Submission not found'
+      });
+    }
+    
+    // Update submission with grade and feedback
+    submission.grade = grade;
+    submission.feedback = feedback;
+    submission.gradedAt = Date.now();
+    submission.gradedBy = req.user.id;
     
     await assignment.save();
     
-    res.json({
+    res.status(200).json({
       success: true,
       message: 'Submission graded successfully',
-      submission,
+      data: submission
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error grading submission:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };

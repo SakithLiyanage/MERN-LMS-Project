@@ -1,24 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  createNotice,
-  getNotices,
+
+const {
+  getNoticesForCourse,
   getNotice,
+  createNotice,
   updateNotice,
-  deleteNotice,
-  getUnreadCount
+  deleteNotice
 } = require('../controllers/notice.controller');
+
 const { protect, authorize } = require('../middleware/auth.middleware');
 
-// Teacher routes
-router.post('/', protect, authorize('teacher', 'admin'), createNotice);
-router.put('/:id', protect, authorize('teacher', 'admin'), updateNotice);
-router.delete('/:id', protect, authorize('teacher', 'admin'), deleteNotice);
+// Route for course-specific notices
+router.get('/course/:courseId', protect, getNoticesForCourse);
 
-// Routes for both teachers and students
-router.get('/', protect, getNotices);
-router.get('/course/:courseId', protect, getNotices);
-router.get('/unread', protect, getUnreadCount);
-router.get('/:id', protect, getNotice);
+// Routes for individual notices
+router.route('/')
+  .post(protect, authorize('teacher', 'admin'), createNotice);
+
+router.route('/:id')
+  .get(protect, getNotice)
+  .put(protect, authorize('teacher', 'admin'), updateNotice)
+  .delete(protect, authorize('teacher', 'admin'), deleteNotice);
 
 module.exports = router;

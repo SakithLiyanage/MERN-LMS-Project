@@ -1,74 +1,82 @@
 const mongoose = require('mongoose');
 
-const submissionSchema = new mongoose.Schema(
+const SubmissionSchema = new mongoose.Schema(
   {
     student: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    file: {
+    content: {
       type: String,
-      required: true,
     },
+    attachments: [
+      {
+        fileName: String,
+        fileUrl: String,
+        fileType: String,
+      },
+    ],
     submittedAt: {
       type: Date,
       default: Date.now,
     },
     grade: {
       type: Number,
-      min: 0,
-      max: 100,
-      default: null,
     },
     feedback: {
       type: String,
-      default: '',
     },
-    graded: {
-      type: Boolean,
-      default: false,
+    gradedAt: {
+      type: Date,
+    },
+    gradedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
-  { timestamps: true }
+  { _id: true }
 );
 
-const assignmentSchema = new mongoose.Schema(
+const AssignmentSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, 'Assignment title is required'],
+      required: [true, 'Please add a title'],
       trim: true,
+      maxlength: [100, 'Title cannot be more than 100 characters'],
     },
     description: {
       type: String,
-      required: [true, 'Assignment description is required'],
+      trim: true,
     },
-    course: {
+    courseId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
-      required: true,
+      required: [true, 'Please provide course ID'],
     },
-    teacher: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    attachments: [{
-      type: String
-    }],
-    deadline: {
+    dueDate: {
       type: Date,
-      required: [true, 'Deadline is required'],
     },
     totalPoints: {
       type: Number,
-      required: [true, 'Total points is required'],
-      min: [0, 'Total points cannot be negative'],
+      default: 100,
     },
-    submissions: [submissionSchema],
+    attachments: [
+      {
+        fileName: String,
+        fileUrl: String,
+        fileType: String,
+      },
+    ],
+    submissions: [SubmissionSchema],
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Assignment', assignmentSchema);
+module.exports = mongoose.model('Assignment', AssignmentSchema);
+
