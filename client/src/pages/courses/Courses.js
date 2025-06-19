@@ -18,12 +18,40 @@ const Courses = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await axios.get('/api/courses');
-        setCourses(res.data.courses);
-        setFilteredCourses(res.data.courses);
-        setLoading(false);
+        console.log('Fetching courses...');
+        
+        // Add error handling and timeout
+        const res = await axios.get('/api/courses', {
+          timeout: 15000, // Increase timeout
+          headers: { 
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        }).catch(error => {
+          console.error('Axios error details:', error.response || error);
+          throw error;
+        });
+        
+        console.log('API Response:', res?.data);
+        
+        if (res?.data?.success) {
+          // Make sure we handle the response data safely
+          const coursesData = res.data.courses || [];
+          console.log(`Successfully loaded ${coursesData.length} courses`);
+          setCourses(coursesData);
+          setFilteredCourses(coursesData);
+        } else {
+          console.warn('Unexpected API response format:', res?.data);
+          // Initialize with empty arrays to avoid UI errors
+          setCourses([]);
+          setFilteredCourses([]);
+        }
       } catch (error) {
         console.error('Error fetching courses:', error);
+        // Don't break UI - initialize with empty arrays
+        setCourses([]);
+        setFilteredCourses([]);
+      } finally {
         setLoading(false);
       }
     };
@@ -31,8 +59,13 @@ const Courses = () => {
     fetchCourses();
   }, []);
 
-  // Filter courses based on search term
+  // Handle safe filtering with optional chaining
   useEffect(() => {
+    if (!courses || !courses.length) {
+      setFilteredCourses([]);
+      return;
+    }
+
     if (searchTerm.trim() === '') {
       setFilteredCourses(courses);
       return;
@@ -40,9 +73,9 @@ const Courses = () => {
 
     const filtered = courses.filter(
       (course) =>
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.code.toLowerCase().includes(searchTerm.toLowerCase())
+        course?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course?.code?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     setFilteredCourses(filtered);

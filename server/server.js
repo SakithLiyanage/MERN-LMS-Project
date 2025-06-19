@@ -35,6 +35,19 @@ mongoose
     // Server still runs, but DB is not connected
   });
 
+// Add debug logging middleware to catch API errors
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(data) {
+    console.log(`${req.method} ${req.originalUrl} - Status: ${res.statusCode}`);
+    if (res.statusCode >= 400) {
+      console.error(`Error response: ${data}`);
+    }
+    return originalSend.call(this, data);
+  };
+  next();
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -45,6 +58,16 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/activities', activityRoutes); // Added activities routes
+
+// Global error handler for any uncaught errors in the routes
+app.use('/api/*', (error, req, res, next) => {
+  console.error('API Error caught by middleware:', error);
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong on the server',
+    details: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+});
 
 // Serve static files
 if (process.env.NODE_ENV === 'production') {

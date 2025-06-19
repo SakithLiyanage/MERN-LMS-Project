@@ -6,20 +6,27 @@ const {
   createCourse,
   updateCourse,
   deleteCourse,
-  getTeacherCourses // Add this new controller function
+  getTeacherCourses,
+  enrollCourse
 } = require('../controllers/course.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
-// Public routes
+// IMPORTANT: The order of routes is important for Express
+// More specific routes should come before dynamic routes (those with parameters)
+
+// Public route - no authentication required
 router.get('/', getCourses);
-router.get('/:id', getCourse);
 
-// Teacher specific routes
-router.get('/teacher', protect, authorize('teacher', 'admin'), getTeacherCourses);
+// Teacher-specific route - must be before /:id route
+router.get('/teacher', protect, authorize('teacher'), getTeacherCourses);
 
-// Protected routes - only for teachers and admins
-router.post('/', protect, authorize('teacher', 'admin'), createCourse);
-router.put('/:id', protect, authorize('teacher', 'admin'), updateCourse);
-router.delete('/:id', protect, authorize('teacher', 'admin'), deleteCourse);
+// Course by ID - protected 
+router.get('/:id', protect, getCourse);
+router.post('/:id/enroll', protect, authorize('student'), enrollCourse);
+router.put('/:id', protect, authorize('teacher'), updateCourse);
+router.delete('/:id', protect, authorize('teacher'), deleteCourse);
+
+// Course creation
+router.post('/', protect, authorize('teacher'), createCourse);
 
 module.exports = router;

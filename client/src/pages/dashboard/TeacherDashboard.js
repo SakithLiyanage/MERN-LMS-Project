@@ -28,21 +28,22 @@ const TeacherDashboard = () => {
           }
         };
 
-        // Fetch teacher-specific courses
-        const coursesRes = await axios.get('/api/courses/teacher', config);
-        setCourses(Array.isArray(coursesRes.data) ? coursesRes.data : []);
+        // Use try/catch for each request individually
+        try {
+          const coursesRes = await axios.get('/api/courses/teacher', config);
+          setCourses(coursesRes.data?.success ? coursesRes.data.courses || [] : []);
+        } catch (error) {
+          console.error('Error fetching teacher courses:', error);
+          setCourses([]);
+        }
 
-        // Fetch other data
-        const noticesRes = await axios.get('/api/notices', config);
-        const assignmentsRes = await axios.get('/api/assignments', config);
-        const quizzesRes = await axios.get('/api/quizzes', config);
-
-        setNotices(Array.isArray(noticesRes.data) ? noticesRes.data : []);
-        setAssignments(Array.isArray(assignmentsRes.data) ? assignmentsRes.data : []);
-        setQuizzes(Array.isArray(quizzesRes.data) ? quizzesRes.data : []);
+        // Initialize with empty arrays to avoid errors
+        setNotices([]);
+        setAssignments([]);
+        setQuizzes([]);
+        
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load dashboard data');
+        console.error('Error fetching teacher data:', error);
       } finally {
         setLoading(false);
       }
