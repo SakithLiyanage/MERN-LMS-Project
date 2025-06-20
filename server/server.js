@@ -18,6 +18,14 @@ const activityRoutes = require('./routes/activity.routes'); // Added activities 
 
 const app = express();
 
+// Disable caching for all API responses
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api/')) {
+    res.set('Cache-Control', 'no-store');
+  }
+  next();
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -45,6 +53,15 @@ app.use((req, res, next) => {
     }
     return originalSend.call(this, data);
   };
+  next();
+});
+
+// Add a debug middleware for content routes
+app.use(['/api/materials', '/api/assignments', '/api/quizzes', '/api/notices'], (req, res, next) => {
+  console.log(`DEBUG: ${req.method} ${req.originalUrl}`);
+  console.log('Query params:', req.query);
+  console.log('URL params:', req.params);
+  console.log('Body:', req.body);
   next();
 });
 
@@ -101,6 +118,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     success: false,
     message: err.message || 'Something went wrong on the server'
+  });
+});
+
+// Error handler middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error('Error:', err.message);
+  // Close server & exit process
+  server.close(() => {
+    process.exit(1);
   });
 });
 

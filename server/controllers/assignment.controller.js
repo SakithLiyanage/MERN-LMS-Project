@@ -35,7 +35,7 @@ exports.getAssignments = async (req, res) => {
     res.status(200).json({
       success: true,
       count: assignments.length,
-      data: assignments
+      assignments: assignments
     });
   } catch (error) {
     console.error('Error getting assignments:', error);
@@ -52,27 +52,43 @@ exports.getAssignments = async (req, res) => {
 // @access  Private
 exports.getAssignment = async (req, res) => {
   try {
-    const assignment = await Assignment.findById(req.params.id)
-      .populate('courseId', 'title code teacher')
-      .populate('submissions.student', 'name email');
+    const { id } = req.params;
+    
+    // Special case for "teacher" route parameter
+    if (id === 'teacher') {
+      // Get assignments created by teachers
+      const assignments = await Assignment.find({ role: 'teacher' })
+        .populate('courseId')
+        .populate('userId', 'name email');
       
-    if (!assignment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Assignment not found'
+      return res.status(200).json({
+        success: true,
+        assignments: assignments,
       });
     }
     
+    // Regular case - find by ID
+    const assignment = await Assignment.findById(id)
+      .populate('courseId')
+      .populate('userId', 'name email');
+    
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found',
+      });
+    }
+
     res.status(200).json({
       success: true,
-      data: assignment
+      assignment: assignment,
     });
   } catch (error) {
     console.error('Error getting assignment:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -127,7 +143,7 @@ exports.createAssignment = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      data: assignment
+      assignment: assignment
     });
   } catch (error) {
     console.error('Error creating assignment:', error);
@@ -178,7 +194,7 @@ exports.updateAssignment = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      data: assignment
+      assignment: assignment
     });
   } catch (error) {
     console.error('Error updating assignment:', error);
@@ -309,7 +325,7 @@ exports.submitAssignment = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Assignment submitted successfully',
-      data: assignment
+      assignment: assignment
     });
   } catch (error) {
     console.error('Error submitting assignment:', error);
@@ -365,7 +381,7 @@ exports.gradeSubmission = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Submission graded successfully',
-      data: submission
+      submission: submission,
     });
   } catch (error) {
     console.error('Error grading submission:', error);
@@ -373,6 +389,57 @@ exports.gradeSubmission = async (req, res) => {
       success: false,
       message: 'Server error',
       error: error.message
+    });
+  }
+};
+
+// @desc    Get recent assignments for teacher
+// @route   GET /api/assignments/teacher/recent
+// @access  Private/Teacher
+exports.getTeacherRecentAssignments = async (req, res) => {
+  try {
+    // Get courses taught by this teacher
+    const courses = await Course.find({ teacher: req.user.id });
+    const courseIds = courses.map(course => course._id);
+    
+    // Get recent assignments from those courses
+    const assignments = await Assignment.find({ courseId: { $in: courseIds } })
+      .populate('courseId', 'title code')
+      .sort('-createdAt')
+      .limit(5); // Limit to 5 most recent
+    
+    res.json({
+      success: true,
+      assignments: assignments
+    });
+  } catch (error) {
+    console.error('Error fetching recent assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+// @desc    Get assignments created by teachers
+// @route   GET /api/assignments/teacher
+// @access  Private
+exports.getTeacherAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find({ role: 'teacher' })
+      .populate('courseId')
+      .populate('userId', 'name email');
+    
+    res.status(200).json({
+      success: true,
+      assignments: assignments,
+    });
+  } catch (error) {
+    console.error('Error getting teacher assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
     });
   }
 };

@@ -4,43 +4,43 @@ const materialSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, 'Material title is required'],
+      required: [true, 'Please provide a title'],
       trim: true,
+      maxlength: [100, 'Title cannot be more than 100 characters'],
     },
     description: {
       type: String,
-      default: '',
+      trim: true,
     },
-    course: {
+    type: {
+      type: String,
+      enum: ['document', 'video', 'image', 'link', 'other'],
+      default: 'document',
+    },
+    courseId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
-      required: true,
+      required: [true, 'Please provide course ID'],
     },
-    teacher: {
+    author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    type: {
+    fileUrl: {
       type: String,
-      enum: ['pdf', 'image', 'video', 'link', 'document', 'other'],
-      required: [true, 'Material type is required'],
     },
-    file: {
+    fileName: {
       type: String,
-      default: null,
+    },
+    fileType: {
+      type: String,
+    },
+    fileSize: {
+      type: Number,
     },
     link: {
       type: String,
-      default: null,
-    },
-    isPublished: {
-      type: Boolean,
-      default: true,
-    },
-    order: {
-      type: Number,
-      default: 0,
     },
   },
   { timestamps: true }

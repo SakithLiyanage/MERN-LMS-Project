@@ -69,7 +69,7 @@ exports.getTeacherQuizzes = async (req, res) => {
     res.json({
       success: true,
       count: quizzes.length,
-      quizzes,
+      quizzes: quizzes,
     });
   } catch (error) {
     console.error(error);
@@ -201,7 +201,7 @@ exports.getQuiz = async (req, res) => {
     
     res.json({
       success: true,
-      quiz,
+      quiz: quiz,
     });
   } catch (error) {
     console.error(error);
@@ -241,7 +241,7 @@ exports.updateQuiz = async (req, res) => {
     
     res.json({
       success: true,
-      quiz,
+      quiz: quiz,
     });
   } catch (error) {
     console.error(error);

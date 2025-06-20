@@ -251,7 +251,17 @@ const CourseDetails = () => {
 
             {/* Materials Tab */}
             <Tab.Panel className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Course Materials</h3>
+              {isCourseTeacher && (
+                <div className="mb-4">
+                  <Link
+                    to={`/teacher/materials/create/${course._id}`}
+                    className="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" /> Add Material
+                  </Link>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 {materials.length > 0 ? (
                   materials.map((material) => (
@@ -270,9 +280,9 @@ const CourseDetails = () => {
                           </p>
                         </div>
                         <div className="flex">
-                          {material.type === 'pdf' || material.type === 'document' || material.type === 'image' ? (
+                          {material.type === 'document' || material.type === 'image' ? (
                             <a
-                              href={`/uploads/${material.file}`}
+                              href={`/uploads/materials/${material.fileName}`}
                               target="_blank"
                               rel="noreferrer"
                               className="px-3 py-1 text-xs rounded-md text-white bg-primary-600 hover:bg-primary-700"

@@ -45,15 +45,23 @@ exports.getCourse = async (req, res) => {
         message: 'Course not found'
       });
     }
+
+    // Fetch related data
+    const [assignments, quizzes, materials, notices] = await Promise.all([
+      require('../models/assignment.model').find({ courseId: course._id }),
+      require('../models/quiz.model').find({ course: course._id }),
+      require('../models/material.model').find({ courseId: course._id }),
+      require('../models/notice.model').find({ courseId: course._id })
+    ]);
     
     return res.status(200).json({
       success: true,
       course,
       students: course.students || [],
-      assignments: [],
-      quizzes: [],
-      materials: [],
-      notices: []
+      assignments: assignments || [],
+      quizzes: quizzes || [],
+      materials: materials || [],
+      notices: notices || []
     });
   } catch (error) {
     console.error('Error fetching course:', error);

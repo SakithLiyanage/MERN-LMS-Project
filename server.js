@@ -2,6 +2,7 @@ const Notice = require('../models/notice.model');
 const Course = require('../models/course.model');
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');
 
 // Helper function to create directories if they don't exist
 const ensureDirectoryExists = (directory) => {
@@ -9,6 +10,12 @@ const ensureDirectoryExists = (directory) => {
     fs.mkdirSync(directory, { recursive: true });
   }
 };
+
+// Add proper CORS handling to allow cross-origin requests
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 
 // @desc    Create new notice
 // @route   POST /api/notices
@@ -79,7 +86,7 @@ exports.createNotice = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      notice: notice
+      data: notice
     });
   } catch (error) {
     console.error('Error creating notice:', error);
@@ -107,31 +114,16 @@ exports.getNotices = async (req, res) => {
       query.courseId = req.query.courseId;
     }
     
-    // Check if we have courseId in params (for /course/:courseId route)
-    if (req.params.courseId) {
-      query.courseId = req.params.courseId;
-      console.log(`Getting notices for course from params: ${req.params.courseId}`);
-    }
-    
-    console.log('Final query:', query);
-    
     const notices = await Notice.find(query)
-      .populate({
-        path: 'courseId',
-        select: 'name code' 
-      })
-      .populate({
-        path: 'author',  // Changed from userId to author to match schema
-        select: 'name email role'
-      })
-      .sort('-pinned -createdAt');  // Sort by pinned first, then by creation date
+      .populate('courseId')
+      .populate('userId', 'name email role');
     
     console.log(`Found ${notices.length} notices`);
     
     res.status(200).json({
       success: true,
       count: notices.length,
-      notices: notices
+      data: notices
     });
   } catch (error) {
     console.error('Error fetching notices:', error);
@@ -157,7 +149,7 @@ exports.getNoticesForCourse = async (req, res) => {
     res.status(200).json({
       success: true,
       count: notices.length,
-      notices: notices
+      data: notices
     });
   } catch (error) {
     console.error('Error getting notices:', error);
@@ -179,14 +171,8 @@ exports.getNotice = async (req, res) => {
     console.log(`Fetching notice with id: ${id}`);
     
     const notice = await Notice.findById(id)
-      .populate({
-        path: 'courseId',
-        select: 'name code'
-      })
-      .populate({
-        path: 'author',  // Changed from userId to author to match schema
-        select: 'name email role'
-      });
+      .populate('courseId')
+      .populate('userId', 'name email role');
     
     if (!notice) {
       console.log('Notice not found');
@@ -198,7 +184,7 @@ exports.getNotice = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      notice: notice
+      data: notice
     });
   } catch (error) {
     console.error('Error fetching notice:', error);
@@ -241,7 +227,7 @@ exports.updateNotice = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      notice: notice
+      data: notice
     });
   } catch (error) {
     console.error('Error updating notice:', error);
