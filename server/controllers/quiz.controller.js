@@ -137,75 +137,61 @@ exports.getStudentQuizzes = async (req, res) => {
   }
 };
 
-// @desc    Get single quiz
+// @desc    Get a single quiz
 // @route   GET /api/quizzes/:id
 // @access  Private
 exports.getQuiz = async (req, res) => {
   try {
+    console.log('Fetching quiz with ID:', req.params.id);
+    
     const quiz = await Quiz.findById(req.params.id)
-      .populate('course', 'title code')
-      .populate('teacher', 'name email')
-      .populate('results.student', 'name email');
+      .populate('course', 'title code');
     
     if (!quiz) {
-      return res.status(404).json({ message: 'Quiz not found' });
+      console.log('Quiz not found with ID:', req.params.id);
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
     }
     
-    // Check if user has access (teacher of the course or enrolled student)
-    const isTeacher = quiz.teacher._id.toString() === req.user.id;
-    const course = await Course.findById(quiz.course);
-    const isEnrolledStudent = course.students.includes(req.user.id);
+    console.log('Quiz found:', quiz.title);
     
-    if (!isTeacher && !isEnrolledStudent && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to access this quiz' });
+    // Ensure questions array exists
+    if (!quiz.questions) {
+      quiz.questions = [];
+      await quiz.save();
     }
     
-    // For students, check if quiz is published and available
-    if (isEnrolledStudent && !isTeacher) {
-      if (!quiz.isPublished) {
-        return res.status(403).json({ message: 'This quiz is not available yet' });
-      }
+    // For students, hide answers
+    if (req.user.role === 'student') {
+      const sanitizedQuiz = quiz.toObject();
       
-      const now = new Date();
-      if (quiz.availableFrom > now) {
-        return res.status(403).json({ message: 'This quiz is not available yet' });
-      }
-      
-      if (quiz.availableTo && quiz.availableTo < now) {
-        return res.status(403).json({ message: 'This quiz is no longer available' });
-      }
-      
-      // Check if student has already taken the quiz
-      const studentResult = quiz.results.find(
-        result => result.student._id.toString() === req.user.id
-      );
-      
-      if (!studentResult) {
-        // Don't send correct answer info to student
-        const quizForStudent = quiz.toObject();
-        if (quizForStudent.questions) {
-          quizForStudent.questions = quizForStudent.questions.map(q => ({
-            ...q,
-            options: q.options.map(o => ({
-              _id: o._id,
-              text: o.text
-            }))
-          }));
-        }
-        return res.json({
-          success: true,
-          quiz: quizForStudent,
+      if (sanitizedQuiz.questions && Array.isArray(sanitizedQuiz.questions)) {
+        sanitizedQuiz.questions = sanitizedQuiz.questions.map(q => {
+          const { correctAnswer, explanation, ...rest } = q;
+          return rest;
         });
       }
+      
+      return res.status(200).json({
+        success: true,
+        data: sanitizedQuiz
+      });
     }
     
-    res.json({
+    // Return full quiz data for teachers/admins
+    return res.status(200).json({
       success: true,
-      quiz: quiz,
+      data: quiz
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error fetching quiz:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching quiz details',
+      error: error.message
+    });
   }
 };
 
@@ -428,3 +414,4 @@ exports.getQuizResult = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+    

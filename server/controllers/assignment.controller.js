@@ -1,5 +1,6 @@
 const Assignment = require('../models/assignment.model');
 const Course = require('../models/course.model');
+const User = require('../models/user.model');
 
 // @desc    Get all assignments
 // @route   GET /api/assignments
@@ -52,43 +53,30 @@ exports.getAssignments = async (req, res) => {
 // @access  Private
 exports.getAssignment = async (req, res) => {
   try {
-    const { id } = req.params;
+    console.log('Getting assignment details for ID:', req.params.id);
     
-    // Special case for "teacher" route parameter
-    if (id === 'teacher') {
-      // Get assignments created by teachers
-      const assignments = await Assignment.find({ role: 'teacher' })
-        .populate('courseId')
-        .populate('userId', 'name email');
+    const assignment = await Assignment.findById(req.params.id)
+      .populate('courseId', 'title code teacher')
+      .populate('submissions.student', 'name email avatar');
       
-      return res.status(200).json({
-        success: true,
-        assignments: assignments,
-      });
-    }
-    
-    // Regular case - find by ID
-    const assignment = await Assignment.findById(id)
-      .populate('courseId')
-      .populate('userId', 'name email');
-    
     if (!assignment) {
       return res.status(404).json({
         success: false,
-        message: 'Assignment not found',
+        message: 'Assignment not found'
       });
     }
-
-    res.status(200).json({
+    
+    // Return the assignment data
+    return res.status(200).json({
       success: true,
-      assignment: assignment,
+      data: assignment
     });
   } catch (error) {
     console.error('Error getting assignment:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message,
+      message: 'Error fetching assignment details',
+      error: error.message
     });
   }
 };
@@ -440,6 +428,40 @@ exports.getTeacherAssignments = async (req, res) => {
       success: false,
       message: 'Server error',
       error: error.message,
+    });
+  }
+};
+
+// @desc    Get student assignments
+// @route   GET /api/assignments/student
+// @access  Private/Student
+exports.getStudentAssignments = async (req, res) => {
+  try {
+    // Find courses the student is enrolled in
+    const student = await User.findById(req.user.id).select('courses');
+    
+    if (!student || !student.courses || student.courses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: []
+      });
+    }
+    
+    // Get assignments for those courses
+    const assignments = await Assignment.find({
+      courseId: { $in: student.courses }
+    }).populate('courseId', 'title code');
+    
+    return res.status(200).json({
+      success: true,
+      data: assignments
+    });
+  } catch (error) {
+    console.error('Error getting student assignments:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching student assignments',
+      error: error.message
     });
   }
 };

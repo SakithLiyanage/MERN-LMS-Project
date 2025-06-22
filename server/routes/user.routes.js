@@ -9,7 +9,8 @@ const {
   getUser,
   updateUser,
   deleteUser,
-  updatePassword
+  updatePassword,
+  getEnrolledCourses
 } = require('../controllers/user.controller');
 
 // Routes for admin only
@@ -22,5 +23,8 @@ router.put('/me/password', protect, updatePassword);
 
 // Admin route for managing users
 router.delete('/:id', protect, authorize('admin'), deleteUser);
+
+// Add student dashboard routes
+router.get('/me/courses', protect, authorize('student'), getEnrolledCourses);
 
 module.exports = router;

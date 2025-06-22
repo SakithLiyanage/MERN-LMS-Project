@@ -126,3 +126,31 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// @desc    Get courses for current student
+// @route   GET /api/users/me/courses
+// @access  Private/Student
+exports.getEnrolledCourses = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('courses');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      courses: user.courses || []
+    });
+  } catch (error) {
+    console.error('Error getting enrolled courses:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching enrolled courses',
+      error: error.message
+    });
+  }
+};

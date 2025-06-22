@@ -190,23 +190,26 @@ const AssignmentDetails = () => {
 
       {/* Attachments Section */}
       {assignment.attachments && assignment.attachments.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Attachments</h2>
-          <div className="space-y-2">
+        <div className="mb-8">
+          <h2 className="text-lg font-medium text-gray-900 mb-2">Attachments</h2>
+          <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md">
             {assignment.attachments.map((attachment, index) => (
-              <div key={index} className="flex items-center">
-                <DocumentDownloadIcon className="h-5 w-5 text-gray-500 mr-2" />
+              <li key={index} className="py-3 px-4 flex items-center justify-between text-sm">
+                <div className="flex items-center">
+                  <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="text-gray-900">{attachment.fileName}</span>
+                </div>
                 <a
-                  href={`/uploads/${attachment}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary-600 hover:underline"
+                  href={`/uploads/${attachment.fileUrl}`}
+                  download={attachment.fileName}
+                  className="inline-flex items-center px-3 py-1 bg-primary-600 text-white rounded-md hover:bg-primary-700"
                 >
-                  {attachment.split('/').pop()}
+                  <DocumentDownloadIcon className="h-4 w-4 mr-1" />
+                  Download
                 </a>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
