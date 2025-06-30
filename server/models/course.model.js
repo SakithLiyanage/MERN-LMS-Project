@@ -27,6 +27,10 @@ const CourseSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    coverImageUrl: {
+      type: String,
+      default: '',
+    },
     students: [
       {
         type: mongoose.Schema.Types.ObjectId,

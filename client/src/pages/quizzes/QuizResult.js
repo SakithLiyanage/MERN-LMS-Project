@@ -21,12 +21,11 @@ const QuizResult = () => {
     const fetchQuizResult = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`/api/quizzes/${quizId}/results/${resultId}`, {
+        const res = await axios.get(`/api/quizzes/${quizId}/result`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
         if (res.data.success) {
-          setQuiz(res.data.quiz);
+          setQuiz(res.data.result.quiz || {});
           setResult(res.data.result);
         } else {
           toast.error('Failed to load quiz results');
@@ -38,9 +37,8 @@ const QuizResult = () => {
         setLoading(false);
       }
     };
-
     fetchQuizResult();
-  }, [quizId, resultId]);
+  }, [quizId]);
 
   // Function to download quiz results as PDF
   const downloadResults = () => {
@@ -82,7 +80,10 @@ const QuizResult = () => {
     );
   }
 
-  const percentage = Math.round((result.score / result.totalPoints) * 100);
+  // Calculate correct answers and percentage
+  const correctAnswers = result.answers?.filter(a => a.isCorrect).length || 0;
+  const totalQuestions = quiz.questions?.length || 0;
+  const percentage = result.totalPossibleScore ? Math.round((result.score / result.totalPossibleScore) * 100) : 0;
   const isPassed = percentage >= (quiz.passScore || 70);
 
   return (
@@ -116,12 +117,12 @@ const QuizResult = () => {
         <div className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{result.score}/{result.totalPoints}</div>
+              <div className="text-lg font-semibold">{result.score}/{result.totalPossibleScore}</div>
               <div className="text-xs text-gray-500">Points</div>
             </div>
             
             <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{result.correctAnswers}/{quiz.questions?.length}</div>
+              <div className="text-lg font-semibold">{correctAnswers}/{totalQuestions}</div>
               <div className="text-xs text-gray-500">Correct Answers</div>
             </div>
             

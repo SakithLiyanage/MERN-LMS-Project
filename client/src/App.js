@@ -42,6 +42,7 @@ import QuizDetails from './pages/quizzes/QuizDetails';
 import CreateQuiz from './pages/teacher/CreateQuiz';
 import TakeQuiz from './pages/quizzes/TakeQuiz';
 import QuizResult from './pages/quizzes/QuizResult';
+import EditQuiz from './pages/teacher/EditQuiz';
 
 // Material Pages
 import Materials from './pages/materials/Materials';
@@ -98,6 +99,7 @@ const App = () => {
           <Route element={<PrivateRoute />}>
             <Route path="/quizzes" element={<Layout><Quizzes /></Layout>} />
             <Route path="/quizzes/:id" element={<Layout><QuizDetails /></Layout>} />
+            <Route path="/quizzes/:id/edit" element={<Layout><EditQuiz /></Layout>} />
             <Route 
               path="/quizzes/:id/take" 
               element={

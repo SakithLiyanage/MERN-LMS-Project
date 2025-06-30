@@ -1,5 +1,6 @@
 const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -115,4 +116,51 @@ exports.getMe = async (req, res) => {
     console.error('Get me error:', error);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+// @desc    Forgot Password
+// @route   POST /api/auth/forgot-password
+// @access  Public
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Please provide your email address.' });
+  }
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ message: 'No user found with that email.' });
+  }
+  // Generate reset token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+  user.resetPasswordToken = resetTokenHash;
+  user.resetPasswordExpire = Date.now() + 1000 * 60 * 30; // 30 minutes
+  await user.save();
+  // For demo: log the reset link
+  const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+  console.log(`Password reset link for ${email}: ${resetUrl}`);
+  res.json({ success: true, message: 'Password reset link sent (check console in demo).' });
+};
+
+// @desc    Reset Password
+// @route   POST /api/auth/reset-password
+// @access  Public
+exports.resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return res.status(400).json({ message: 'Invalid request.' });
+  }
+  const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    resetPasswordToken: resetTokenHash,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+  if (!user) {
+    return res.status(400).json({ message: 'Token is invalid or has expired.' });
+  }
+  user.password = password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
+  res.json({ success: true, message: 'Password has been reset successfully.' });
 };

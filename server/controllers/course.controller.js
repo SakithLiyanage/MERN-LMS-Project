@@ -77,7 +77,7 @@ exports.getCourse = async (req, res) => {
 // @access  Private/Teacher
 exports.createCourse = async (req, res) => {
   try {
-    const { title, description, code } = req.body;
+    const { title, description, code, coverImageUrl } = req.body;
     
     if (!title) {
       return res.status(400).json({
@@ -90,6 +90,7 @@ exports.createCourse = async (req, res) => {
       title,
       description,
       code,
+      coverImageUrl,
       teacher: req.user.id
     });
     

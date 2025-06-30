@@ -414,4 +414,25 @@ exports.getQuizResult = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// @desc    Get all quizzes for a specific course
+// @route   GET /api/quizzes/course/:courseId
+// @access  Private (Teacher/Student)
+exports.getCourseQuizzes = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const quizzes = await Quiz.find({ course: courseId })
+      .populate('course', 'title code')
+      .sort('-createdAt');
+
+    res.json({
+      success: true,
+      count: quizzes.length,
+      quizzes,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
     

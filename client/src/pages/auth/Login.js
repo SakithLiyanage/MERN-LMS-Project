@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthContext from '../../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const Login = () => {
   const { email, password } = formData;
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     // Redirect if already logged in
@@ -30,9 +32,19 @@ const Login = () => {
   
   const onSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(formData);
-    if (success) {
-      // Navigation will happen in useEffect
+    setLoading(true);
+    try {
+      const success = await login(formData);
+      if (success) {
+        toast.success('Login successful!');
+        // Navigation will happen in useEffect
+      } else {
+        toast.error('Invalid credentials.');
+      }
+    } catch (err) {
+      toast.error('Login failed.');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -114,8 +126,9 @@ const Login = () => {
             <button
               type="submit"
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+              disabled={loading}
             >
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>

@@ -33,17 +33,17 @@ const QuizDetails = () => {
     const fetchQuizDetails = async () => {
       try {
         const res = await axios.get(`/api/quizzes/${id}`);
-        setQuiz(res.data.quiz);
+        setQuiz(res.data.data);
         
         // For teachers, get all results
         if (isTeacher) {
-          setResults(res.data.quiz.results || []);
+          setResults(res.data.data?.results || []);
         }
         
         // For students, get their result if they've taken the quiz
         if (isStudent) {
-          const result = res.data.quiz.results?.find(
-            r => r.student._id === user._id
+          const result = (res.data.data?.results || []).find(
+            r => r.student?._id === user._id
           );
           
           if (result) {
@@ -149,7 +149,7 @@ const QuizDetails = () => {
               {quiz.results?.length > 0 && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                   <UserIcon className="h-3 w-3 mr-1" />
-                  {quiz.results.length} {quiz.results.length === 1 ? 'Attempt' : 'Attempts'}
+                  {(quiz.results || []).length} {(quiz.results || []).length === 1 ? 'Attempt' : 'Attempts'}
                 </span>
               )}
             </div>
@@ -329,6 +329,17 @@ const QuizDetails = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+      
+      {isTeacher && (!quiz.results || quiz.results.length === 0) && (
+        <div className="mt-4 sm:mt-0">
+          <Link
+            to={`/quizzes/${quiz._id}/edit`}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+          >
+            Edit Quiz
+          </Link>
         </div>
       )}
     </div>

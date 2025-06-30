@@ -43,8 +43,13 @@ const StudentDashboard = () => {
     fetchStudentData();
   }, []);
 
+  // Defensive: always ensure arrays are defined
+  const safeAssignments = Array.isArray(assignments) ? assignments : [];
+  const safeCourses = Array.isArray(courses) ? courses : [];
+  const safeQuizzes = Array.isArray(quizzes) ? quizzes : [];
+
   // Calculate upcoming deadlines
-  const upcomingAssignments = assignments
+  const upcomingAssignments = safeAssignments
     .filter(assignment => {
       const submitted = assignment.submissions?.some(
         sub => sub.student.toString() === user?._id
@@ -59,7 +64,7 @@ const StudentDashboard = () => {
   const stats = [
     {
       title: 'Enrolled Courses',
-      value: courses.length,
+      value: safeCourses.length,
       icon: <BookOpenIcon className="h-6 w-6 text-blue-500" />,
       color: 'bg-blue-100',
     },
@@ -71,7 +76,7 @@ const StudentDashboard = () => {
     },
     {
       title: 'Available Quizzes',
-      value: quizzes.filter(q => !q.submitted).length,
+      value: safeQuizzes.filter(q => !q.submitted).length,
       icon: <DocumentTextIcon className="h-6 w-6 text-green-500" />,
       color: 'bg-green-100',
     },
@@ -159,8 +164,8 @@ const StudentDashboard = () => {
       <div>
         <h2 className="text-xl font-semibold text-gray-800 mb-4">My Courses</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.length > 0 ? (
-            courses.map((course, index) => (
+          {safeCourses.length > 0 ? (
+            safeCourses.map((course, index) => (
               <motion.div
                 key={course._id}
                 initial={{ opacity: 0, y: 20 }}
@@ -208,9 +213,9 @@ const StudentDashboard = () => {
       <div>
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Available Quizzes</h2>
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {quizzes.filter(q => !q.submitted).length > 0 ? (
+          {safeQuizzes.filter(q => !q.submitted).length > 0 ? (
             <div className="divide-y divide-gray-200">
-              {quizzes
+              {safeQuizzes
                 .filter(q => !q.submitted)
                 .map((quiz) => (
                   <div key={quiz._id} className="p-4 hover:bg-gray-50">

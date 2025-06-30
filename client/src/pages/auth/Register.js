@@ -2,6 +2,8 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthContext from '../../context/AuthContext';
+import zxcvbn from 'zxcvbn';
+import { toast } from 'react-toastify';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +18,12 @@ const Register = () => {
   const { name, email, password, confirmPassword, role } = formData;
   const navigate = useNavigate();
   const { register, isAuthenticated, user } = useContext(AuthContext);
+  
+  const passwordStrength = zxcvbn(password);
+  const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+  const strengthColors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-blue-400', 'bg-green-500'];
+  
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     // Redirect if already logged in
@@ -39,23 +47,31 @@ const Register = () => {
   
   const onSubmit = async (e) => {
     e.preventDefault();
-    
+    setLoading(true);
     // Validate password match
     if (password !== confirmPassword) {
       setPasswordError('Passwords do not match');
+      setLoading(false);
       return;
     }
-    
     const userData = {
       name,
       email,
       password,
       role,
     };
-    
-    const success = await register(userData);
-    if (success) {
-      // Navigation will happen in useEffect
+    try {
+      const success = await register(userData);
+      if (success) {
+        toast.success('Registration successful!');
+        // Navigation will happen in useEffect
+      } else {
+        toast.error('Registration failed.');
+      }
+    } catch (err) {
+      toast.error('Registration failed.');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -128,6 +144,14 @@ const Register = () => {
                 placeholder="Password"
                 minLength="6"
               />
+              {password && (
+                <div className="mt-2">
+                  <div className="w-full h-2 rounded bg-gray-200">
+                    <div className={`h-2 rounded ${strengthColors[passwordStrength.score]}`} style={{ width: `${(passwordStrength.score + 1) * 20}%` }}></div>
+                  </div>
+                  <p className={`text-xs mt-1 ${passwordStrength.score < 2 ? 'text-red-500' : passwordStrength.score < 4 ? 'text-yellow-600' : 'text-green-600'}`}>{strengthLabels[passwordStrength.score]}</p>
+                </div>
+              )}
             </div>
             
             <div>
@@ -173,8 +197,9 @@ const Register = () => {
             <button
               type="submit"
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+              disabled={loading}
             >
-              Register
+              {loading ? 'Registering...' : 'Register'}
             </button>
           </div>
         </form>

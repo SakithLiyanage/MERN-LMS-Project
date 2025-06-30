@@ -97,6 +97,9 @@ const StudentDashboard = () => {
     fetchStudentData();
   }, []);
 
+  // Defensive: always ensure assignments is an array
+  const safeAssignments = Array.isArray(assignments) ? assignments : [];
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -152,7 +155,7 @@ const StudentDashboard = () => {
             <div className="bg-gray-50 overflow-hidden rounded-lg px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">Pending Assignments</dt>
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {assignments.filter(a => !a.submitted).length}
+                {safeAssignments.filter(a => !a.submitted).length}
               </dd>
             </div>
           </dl>
@@ -256,9 +259,9 @@ const StudentDashboard = () => {
           </div>
           
           <div className="border-t border-gray-200">
-            {assignments.filter(a => !a.submitted).length > 0 ? (
+            {safeAssignments.filter(a => !a.submitted).length > 0 ? (
               <ul className="divide-y divide-gray-200">
-                {assignments
+                {safeAssignments
                   .filter(a => !a.submitted)
                   .slice(0, 5)
                   .map(assignment => (

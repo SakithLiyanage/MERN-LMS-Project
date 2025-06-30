@@ -14,7 +14,9 @@ exports.getAssignments = async (req, res) => {
       // Teachers see assignments for their courses
       const teacherCourses = await Course.find({ teacher: req.user.id }).select('_id');
       const courseIds = teacherCourses.map(course => course._id);
-      
+      if (!courseIds.length) {
+        return res.status(200).json({ success: true, count: 0, assignments: [] });
+      }
       assignments = await Assignment.find({ courseId: { $in: courseIds } })
         .populate('courseId', 'title code')
         .sort('-createdAt');
@@ -40,6 +42,7 @@ exports.getAssignments = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting assignments:', error);
+    if (error && error.stack) console.error(error.stack);
     res.status(500).json({
       success: false,
       message: 'Server error',

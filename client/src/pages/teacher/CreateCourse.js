@@ -12,32 +12,15 @@ const CreateCourse = () => {
     title: '',
     description: '',
     code: '',
-    coverImage: null,
+    coverImageUrl: '',
   });
   
   const [loading, setLoading] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
   
-  const { title, description, code } = formData;
+  const { title, description, code, coverImageUrl } = formData;
   
   const onChange = (e) => {
-    if (e.target.name === 'coverImage') {
-      const file = e.target.files[0];
-      setFormData({ ...formData, coverImage: file });
-      
-      // Create preview URL for the image
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreviewImage(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setPreviewImage(null);
-      }
-    } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
   
   const onSubmit = async (e) => {
@@ -133,31 +116,32 @@ const CreateCourse = () => {
             ></textarea>
           </div>
           
-          {/* Course Cover Image */}
+          {/* Cover Image URL */}
           <div>
-            <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">
-              Cover Image
+            <label htmlFor="coverImageUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Cover Image URL
             </label>
             <input
-              type="file"
-              id="coverImage"
-              name="coverImage"
+              type="text"
+              id="coverImageUrl"
+              name="coverImageUrl"
+              value={coverImageUrl}
               onChange={onChange}
-              accept="image/*"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Paste an image URL (e.g., from Unsplash or Pexels)"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Recommended size: 1280x720 pixels (16:9 ratio)
+              Paste a direct image URL from the internet. Recommended size: 1280x720 pixels (16:9 ratio)
             </p>
           </div>
           
           {/* Image Preview */}
-          {previewImage && (
+          {coverImageUrl && (
             <div className="mt-4">
               <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
               <div className="relative w-full h-48 rounded-lg overflow-hidden">
                 <img
-                  src={previewImage}
+                  src={coverImageUrl}
                   alt="Course cover preview"
                   className="w-full h-full object-cover"
                 />

@@ -159,7 +159,7 @@ const Courses = () => {
                 <div 
                   className="h-40 bg-cover bg-center" 
                   style={{ 
-                    backgroundImage: `url(${course.coverImage ? `/uploads/${course.coverImage}` : '/img/default-course.jpg'})` 
+                    backgroundImage: `url(${course.coverImageUrl && course.coverImageUrl.trim() !== '' ? course.coverImageUrl : '/img/default-course.jpg'})` 
                   }}
                 ></div>
                 <div className="p-6">

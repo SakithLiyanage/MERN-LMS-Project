@@ -95,44 +95,29 @@ const TakeQuiz = () => {
   };
   
   const handleAnswerChange = (questionId, value, isMultiple = false) => {
-    if (isMultiple) {
-      setAnswers(prev => {
-        const currentAnswers = [...(prev[questionId] || [])];
-        if (currentAnswers.includes(value)) {
-          return {
-            ...prev,
-            [questionId]: currentAnswers.filter(a => a !== value)
-          };
-        } else {
-          return {
-            ...prev,
-            [questionId]: [...currentAnswers, value]
-          };
-        }
-      });
-    } else {
-      setAnswers(prev => ({
-        ...prev,
-        [questionId]: value
-      }));
-    }
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: value
+    }));
   };
   
   const handleSubmit = async () => {
     setSubmitting(true);
-    
     try {
       const token = localStorage.getItem('token');
+      // Prepare answers as array of { question, selectedOption }
+      const formattedAnswers = Object.entries(answers).map(([questionId, selectedOption]) => ({
+        question: questionId,
+        selectedOption
+      }));
       const res = await axios.post(
         `/api/quizzes/${id}/submit`,
-        { answers },
+        { answers: formattedAnswers },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
       if (res.data.success) {
-        setResultId(res.data.resultId);
         toast.success('Quiz submitted successfully!');
-        navigate(`/quizzes/${id}/results/${res.data.resultId}`);
+        navigate(`/quizzes/${id}/result`);
       } else {
         toast.error(res.data.message || 'Failed to submit quiz');
       }

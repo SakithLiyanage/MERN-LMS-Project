@@ -37,6 +37,8 @@ const UserSchema = new mongoose.Schema(
         ref: 'Course',
       },
     ],
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
   { timestamps: true }
 );

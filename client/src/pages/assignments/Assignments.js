@@ -148,14 +148,14 @@ const Assignments = () => {
           label: 'No Submissions',
           color: 'bg-gray-100 text-gray-800'
         };
-      } else if (assignment.submissions.every(sub => sub.graded)) {
+      } else if ((assignment.submissions || []).every(sub => sub.graded)) {
         return {
           label: 'All Graded',
           color: 'bg-green-100 text-green-800'
         };
       } else {
         return {
-          label: `${assignment.submissions.filter(sub => sub.graded).length}/${assignment.submissions.length} Graded`,
+          label: `${(assignment.submissions || []).filter(sub => sub.graded).length}/${(assignment.submissions || []).length} Graded`,
           color: 'bg-blue-100 text-blue-800'
         };
       }
@@ -223,8 +223,8 @@ const Assignments = () => {
       
       {/* Assignments List */}
       <div className="space-y-4">
-        {filteredAssignments.length > 0 ? (
-          filteredAssignments.map((assignment, index) => {
+        {(filteredAssignments || []).length > 0 ? (
+          (filteredAssignments || []).map((assignment, index) => {
             const status = getAssignmentStatus(assignment);
             const isPastDeadline = new Date(assignment.deadline) < new Date();
             
