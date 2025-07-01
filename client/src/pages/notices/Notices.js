@@ -49,8 +49,9 @@ const Notices = () => {
   // Filter notices based on active tab
   const filteredNotices = notices.filter(notice => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'course') return notice.course !== null;
-    if (activeTab === 'general') return notice.course === null;
+    // Robustly check for course-linked notices
+    if (activeTab === 'course') return notice.course || notice.courseId;
+    if (activeTab === 'general') return !notice.course && !notice.courseId;
     return true;
   });
   
@@ -117,26 +118,16 @@ const Notices = () => {
   }
   
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Notices & Announcements</h1>
-          <p className="text-gray-600">Stay updated with important information</p>
-        </div>
-        
-        {isTeacher && (
-          <Link
-            to="/teacher/notices/create"
-            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Create Notice
-          </Link>
-        )}
-      </div>
+    <div className="max-w-4xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
+        <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-1 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+          Notices & Announcements
+        </h1>
+        <p className="text-text-medium">Stay updated with important information</p>
+      </motion.div>
       
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-neutral-50 mb-6">
         <nav className="flex -mb-px space-x-8">
           <button
             onClick={() => setActiveTab('all')}
@@ -172,92 +163,52 @@ const Notices = () => {
       </div>
       
       {/* Notices List */}
-      {filteredNotices.length > 0 ? (
-        <div className="space-y-4">
-          {filteredNotices.map((notice, index) => {
-            const priorityStyle = getPriorityStyles(notice.priority);
-            
-            return (
-              <motion.div
-                key={notice._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className={`p-5 bg-white rounded-lg shadow-md ${
-                  notice.pinned ? 'border-l-4 border-primary-500' : ''
-                }`}
-              >
-                <div className="sm:flex sm:justify-between sm:items-start">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      {priorityStyle.icon}
-                    </div>
-                    <div className="ml-3">
-                      <div className="flex items-center">
-                        <h3 className="text-lg font-medium text-gray-800">{notice.title}</h3>
-                        {notice.pinned && (
-                          <span className="ml-2 px-2 py-0.5 text-xs bg-primary-100 text-primary-800 rounded-full">
-                            Pinned
-                          </span>
-                        )}
-                        <span className={`ml-2 px-2 py-0.5 text-xs ${priorityStyle.badge} rounded-full`}>
-                          {notice.priority.charAt(0).toUpperCase() + notice.priority.slice(1)}
-                        </span>
-                      </div>
-                      
-                      {notice.course && (
-                        <p className="mt-1 text-sm text-gray-600">
-                          Course: {notice.course.title}
-                        </p>
-                      )}
-                      
-                      <div className="mt-2 text-sm text-gray-700">
-                        <p>{notice.content}</p>
-                      </div>
-                      
-                      {notice.attachments && notice.attachments.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm font-medium text-gray-700">Attachments:</p>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {notice.attachments.map((attachment, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => handleDownload(attachment, attachment)}
-                                className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 text-gray-700"
-                              >
-                                Download {attachment}
-                              </button>
-                            ))}
-                          </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+        {filteredNotices.length > 0 ? (
+          <div className="space-y-4">
+            {filteredNotices.map((notice, index) => {
+              const priorityStyle = getPriorityStyles(notice.priority);
+              return (
+                <motion.div
+                  key={notice._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className={`p-5 bg-white/90 rounded-xl shadow-card border border-primary-50 ${notice.pinned ? 'border-l-4 border-primary-400' : ''}`}
+                >
+                  <div className="sm:flex sm:justify-between sm:items-start">
+                    <div className="flex">
+                      <div className="flex-shrink-0">{priorityStyle.icon}</div>
+                      <div className="ml-3">
+                        <div className="flex items-center">
+                          <h3 className="text-lg font-bold text-text-dark">{notice.title}</h3>
+                          {notice.pinned && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-primary-100 text-primary-800 rounded-full border border-primary-400">Pinned</span>
+                          )}
+                          {(notice.course?.title || notice.courseId) && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-secondary-50 text-secondary-500 rounded-full border border-secondary-400">
+                              {notice.course?.title || notice.courseId?.toString().slice(-6)}
+                            </span>
+                          )}
                         </div>
-                      )}
-                      
-                      <div className="mt-3 flex items-center text-xs text-gray-500">
-                        <p>Posted by {notice.author?.name || 'Unknown'} • {moment(notice.createdAt).fromNow()}</p>
+                        <span className={`ml-2 px-2 py-0.5 text-xs rounded-full border font-bold ${priorityStyle.badge}`}>{notice.priority.charAt(0).toUpperCase() + notice.priority.slice(1)}</span>
                       </div>
                     </div>
                   </div>
-                  
-                  {isTeacher && notice.author?._id === user._id && (
-                    <div className="mt-4 sm:mt-0 sm:ml-6">
-                      <button 
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                        onClick={() => handleDeleteNotice(notice._id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-10 bg-white rounded-lg shadow-md">
-          <p className="text-gray-500">No notices found in this category.</p>
-        </div>
-      )}
+                  <div className="mt-2 text-text-medium">
+                    {notice.content}
+                  </div>
+                  <div className="mt-2 text-xs text-text-medium">
+                    {moment(notice.createdAt).format('MMM D, YYYY [at] h:mm A')}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-text-medium">No notices found.</div>
+        )}
+      </motion.div>
     </div>
   );
 };

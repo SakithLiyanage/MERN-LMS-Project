@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { motion } from 'framer-motion';
 
 const TeacherDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -11,45 +12,29 @@ const TeacherDashboard = () => {
   const [assignments, setAssignments] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [studentCount, setStudentCount] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDashboard = async () => {
       try {
-        // Get auth token from localStorage
         const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('No authentication token found');
-          return;
+        const res = await axios.get('/api/users/me/dashboard-teacher', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setCourses(res.data.courses || []);
+          setAssignments(res.data.assignments || []);
+          setQuizzes(res.data.quizzes || []);
+          setNotices(res.data.notices || []);
+          setStudentCount(res.data.studentCount || 0);
         }
-
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        };
-
-        // Use try/catch for each request individually
-        try {
-          const coursesRes = await axios.get('/api/courses/teacher', config);
-          setCourses(coursesRes.data?.success ? coursesRes.data.courses || [] : []);
-        } catch (error) {
-          console.error('Error fetching teacher courses:', error);
-          setCourses([]);
-        }
-
-        // Initialize with empty arrays to avoid errors
-        setNotices([]);
-        setAssignments([]);
-        setQuizzes([]);
-        
       } catch (error) {
-        console.error('Error fetching teacher data:', error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    fetchDashboard();
   }, []);
 
   const handleLogout = () => {
@@ -57,122 +42,163 @@ const TeacherDashboard = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
-        <button 
-          onClick={handleLogout} 
-          className="px-4 py-2 bg-red-600 text-white rounded-md"
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-neutral-50 min-h-screen">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <img
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'T')}`}
+            alt={user?.name}
+            className="h-12 w-12 rounded-full border-2 border-primary-400 shadow"
+          />
+          <div>
+            <h1 className="text-2xl font-extrabold font-heading text-text-dark">Welcome, {user?.name}</h1>
+            <p className="text-text-medium mt-1">Your teaching dashboard</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-semibold rounded-xl text-white bg-action-red hover:bg-action-orange transition-all"
         >
           Logout
         </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-xl font-semibold">📚 Courses</h2>
-            <Link 
-              to="/create-course" 
-              className="text-sm px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600"
-            >
-              Add New
-            </Link>
-          </div>
-          
-          {loading ? (
-            <p className="text-gray-500">Loading courses...</p>
-          ) : courses.length > 0 ? (
-            <ul className="divide-y divide-gray-200">
-              {courses.map(course => (
-                <li key={course._id} className="flex justify-between items-center py-3">
+      </motion.div>
+      {/* Stats Grid */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <span className="text-3xl font-extrabold text-primary-400">{courses.length}</span>
+          <span className="text-text-medium mt-1">Courses</span>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <span className="text-3xl font-extrabold text-accent-yellow">{assignments.length}</span>
+          <span className="text-text-medium mt-1">Assignments</span>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <span className="text-3xl font-extrabold text-accent-green">{quizzes.length}</span>
+          <span className="text-text-medium mt-1">Quizzes</span>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <span className="text-3xl font-extrabold text-secondary-500">{studentCount}</span>
+          <span className="text-text-medium mt-1">Students</span>
+        </motion.div>
+      </motion.div>
+      {/* My Courses */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="bg-white/90 shadow-card rounded-2xl mb-8 border border-primary-50">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-text-dark">My Courses</h3>
+          <Link to="/create-course" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">Add New</Link>
+        </div>
+        <div className="border-t border-neutral-50">
+          {courses.length > 0 ? (
+            <ul className="divide-y divide-neutral-50">
+              {courses.slice(0, 5).map((course, idx) => (
+                <motion.li key={course._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-primary-50/60 flex justify-between items-center rounded-xl transition-all">
                   <div>
-                    <span className="font-medium">{course.title}</span>
-                    {course.code && <span className="text-xs text-gray-500 ml-2">({course.code})</span>}
+                    <p className="font-semibold text-text-dark">{course.title}</p>
+                    <p className="text-sm text-text-medium">{course.code}</p>
                   </div>
-                  <div className="flex space-x-2">
-                    <Link to={`/courses/${course._id}`} className="text-blue-500 hover:underline">
-                      View
-                    </Link>
-                    <Link to={`/edit-course/${course._id}`} className="text-green-500 hover:underline">
-                      Edit
-                    </Link>
+                  <div className="flex gap-2">
+                    <Link to={`/courses/${course._id}`} className="text-primary-500 hover:text-secondary-500 font-semibold">View</Link>
+                    <Link to={`/edit-course/${course._id}`} className="text-accent-green hover:text-accent-yellow font-semibold">Edit</Link>
                   </div>
-                </li>
+                </motion.li>
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500 py-2">No courses available. Create your first course!</p>
+            <div className="px-4 py-6 text-text-medium">No courses found.</div>
           )}
         </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-2">📣 Notices</h2>
-          <ul>
-            {notices.length > 0 ? (
-              notices.map(notice => (
-                <li key={notice._id} className="flex justify-between items-center py-2">
-                  <span>{notice.title}</span>
-                  <Link to={`/notices/${notice._id}`} className="text-blue-500">
-                    View
-                  </Link>
-                </li>
-              ))
-            ) : (
-              <li className="text-gray-500">No notices available</li>
-            )}
-          </ul>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-2">📝 Assignments</h2>
-          <ul>
+      </motion.div>
+      {/* Recent Assignments & Quizzes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Recent Assignments */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }} className="bg-white/90 shadow-card rounded-2xl border border-primary-50">
+          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-text-dark">Recent Assignments</h3>
+            <Link to="/teacher/assignments/create" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">Add</Link>
+          </div>
+          <div className="border-t border-neutral-50">
             {assignments.length > 0 ? (
-              assignments.map(assignment => (
-                <li key={assignment._id} className="flex justify-between items-center py-2">
-                  <span>{assignment.title}</span>
-                  <Link to={`/assignments/${assignment._id}`} className="text-blue-500">
-                    View
-                  </Link>
-                </li>
-              ))
+              <ul className="divide-y divide-neutral-50">
+                {assignments.slice(0, 5).map((assignment, idx) => (
+                  <motion.li key={assignment._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-accent-yellow/10 flex justify-between items-center rounded-xl transition-all">
+                    <div>
+                      <p className="font-semibold text-text-dark">{assignment.title}</p>
+                      <p className="text-xs text-text-medium">Due: {assignment.deadline}</p>
+                    </div>
+                    <Link to={`/assignments/${assignment._id}`} className="text-primary-500 hover:text-secondary-500 font-semibold">View</Link>
+                  </motion.li>
+                ))}
+              </ul>
             ) : (
-              <li className="text-gray-500">No assignments available</li>
+              <div className="px-4 py-6 text-text-medium">No assignments found.</div>
             )}
-          </ul>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-2">❓ Quizzes</h2>
-          <ul>
+          </div>
+        </motion.div>
+        {/* Recent Quizzes */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }} className="bg-white/90 shadow-card rounded-2xl border border-primary-50">
+          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-text-dark">Recent Quizzes</h3>
+            <Link to="/teacher/quizzes/create" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">Add</Link>
+          </div>
+          <div className="border-t border-neutral-50">
             {quizzes.length > 0 ? (
-              quizzes.map(quiz => (
-                <li key={quiz._id} className="flex justify-between items-center py-2">
-                  <span>{quiz.title}</span>
-                  <Link to={`/quizzes/${quiz._id}`} className="text-blue-500">
-                    View
-                  </Link>
-                </li>
-              ))
+              <ul className="divide-y divide-neutral-50">
+                {quizzes.slice(0, 5).map((quiz, idx) => (
+                  <motion.li key={quiz._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-accent-yellow/10 flex justify-between items-center rounded-xl transition-all">
+                    <div>
+                      <p className="font-semibold text-text-dark">{quiz.title}</p>
+                      <p className="text-xs text-text-medium">Questions: {quiz.questions?.length || 0}</p>
+                    </div>
+                    <Link to={`/quizzes/${quiz._id}`} className="text-primary-500 hover:text-secondary-500 font-semibold">View</Link>
+                  </motion.li>
+                ))}
+              </ul>
             ) : (
-              <li className="text-gray-500">No quizzes available</li>
+              <div className="px-4 py-6 text-text-medium">No quizzes found.</div>
             )}
-          </ul>
+          </div>
+        </motion.div>
+      </div>
+      {/* Notices */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }} className="bg-white/90 shadow-card rounded-2xl mb-8 border border-primary-50">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-text-dark">Notices</h3>
+          <Link to="/teacher/notices/create" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">Add</Link>
         </div>
-      </div>
-
-      <div className="mt-4">
-        <Link 
-          to="/create-course" 
-          className="inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-        >
-          Create New Course
-        </Link>
-      </div>
+        <div className="border-t border-neutral-50">
+          {notices.length > 0 ? (
+            <ul className="divide-y divide-neutral-50">
+              {notices.slice(0, 5).map((notice, idx) => (
+                <motion.li key={notice._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-primary-50/60 flex justify-between items-center rounded-xl transition-all">
+                  <div>
+                    <p className="font-semibold text-text-dark">{notice.title}</p>
+                    <p className="text-xs text-text-medium">{notice.createdAt}</p>
+                  </div>
+                  <Link to={`/notices/${notice._id}`} className="text-primary-500 hover:text-secondary-500 font-semibold">View</Link>
+                </motion.li>
+              ))}
+            </ul>
+          ) : (
+            <div className="px-4 py-6 text-text-medium">No notices found.</div>
+          )}
+        </div>
+      </motion.div>
+      {/* Call to Action */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1 }} className="flex gap-4">
+        <Link to="/create-course" className="inline-block px-4 py-2 bg-accent-green text-white rounded-xl hover:bg-primary-400 transition-colors font-semibold shadow">Create New Course</Link>
+        <Link to="/teacher/assignments/create" className="inline-block px-4 py-2 bg-primary-400 text-white rounded-xl hover:bg-accent-yellow transition-colors font-semibold shadow">Add Assignment</Link>
+        <Link to="/teacher/quizzes/create" className="inline-block px-4 py-2 bg-secondary-500 text-white rounded-xl hover:bg-primary-400 transition-colors font-semibold shadow">Add Quiz</Link>
+        <Link to="/teacher/notices/create" className="inline-block px-4 py-2 bg-action-orange text-white rounded-xl hover:bg-action-red transition-colors font-semibold shadow">Add Notice</Link>
+      </motion.div>
     </div>
   );
 };

@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import moment from 'moment';
 import AuthContext from '../../context/AuthContext';
+import { motion } from 'framer-motion';
 
 const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -27,74 +28,26 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStudentData = async () => {
+    const fetchDashboard = async () => {
       try {
         const token = localStorage.getItem('token');
-        
-        const coursesRes = await axios.get('/api/users/me/courses', {
+        const res = await axios.get('/api/users/me/dashboard', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
-        if (coursesRes.data.success) {
-          setCourses(coursesRes.data.courses);
-          
-          // Once we have courses, fetch related content
-          if (coursesRes.data.courses.length > 0) {
-            const courseIds = coursesRes.data.courses.map(course => course._id);
-            
-            // Get assignments
-            try {
-              const assignmentsRes = await axios.get('/api/users/me/assignments', {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-              setAssignments(assignmentsRes.data.data || []);
-            } catch (err) {
-              console.error('Error fetching assignments:', err);
-              setAssignments([]);
-            }
-            
-            // Get quizzes
-            try {
-              const quizzesRes = await axios.get('/api/users/me/quizzes', {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-              setQuizzes(quizzesRes.data.data || []);
-            } catch (err) {
-              console.error('Error fetching quizzes:', err);
-              setQuizzes([]);
-            }
-            
-            // Get quiz results
-            try {
-              const resultsRes = await axios.get('/api/users/me/quiz-results', {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-              setQuizResults(resultsRes.data.data || []);
-            } catch (err) {
-              console.error('Error fetching quiz results:', err);
-              setQuizResults([]);
-            }
-            
-            // Get notices
-            try {
-              const noticesRes = await axios.get('/api/users/me/notices', {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-              setNotices(noticesRes.data.data || []);
-            } catch (err) {
-              console.error('Error fetching notices:', err);
-              setNotices([]);
-            }
-          }
+        if (res.data.success) {
+          setCourses(res.data.courses || []);
+          setAssignments(res.data.assignments || []);
+          setQuizzes(res.data.quizzes || []);
+          setQuizResults(res.data.quizResults || []);
+          setNotices(res.data.notices || []);
         }
       } catch (error) {
-        console.error('Error fetching student data:', error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchStudentData();
+    fetchDashboard();
   }, []);
 
   // Defensive: always ensure assignments is an array
@@ -109,223 +62,156 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome, {user?.name}</h1>
-          <p className="text-gray-600 mt-1">Your learning dashboard</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-neutral-50 min-h-screen">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <img
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'S')}`}
+            alt={user?.name}
+            className="h-12 w-12 rounded-full border-2 border-primary-400 shadow"
+          />
+          <div>
+            <h1 className="text-2xl font-extrabold font-heading text-text-dark">Welcome, {user?.name}</h1>
+            <p className="text-text-medium mt-1">Your learning dashboard</p>
+          </div>
         </div>
-        
         <div className="mt-4 sm:mt-0 flex space-x-3">
           <Link
             to="/courses"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-2 border border-primary-100 shadow-sm text-base font-semibold rounded-xl text-primary-500 bg-white/80 hover:bg-primary-50 transition-all"
           >
             Explore Courses
           </Link>
-          
           <button
             onClick={logout}
-            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-semibold rounded-xl text-white bg-action-red hover:bg-action-orange transition-all"
           >
             Logout
           </button>
         </div>
-      </div>
-      
-      {/* Progress Overview */}
-      <div className="bg-white overflow-hidden shadow rounded-lg mb-8">
-        <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <ChartBarIcon className="mr-2 h-5 w-5 text-primary-500" />
-            Learning Progress
-          </h2>
-          
-          <dl className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            <div className="bg-gray-50 overflow-hidden rounded-lg px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">Enrolled Courses</dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">{courses?.length || 0}</dd>
-            </div>
-            
-            <div className="bg-gray-50 overflow-hidden rounded-lg px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">Completed Quizzes</dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">{quizResults?.length || 0}</dd>
-            </div>
-            
-            <div className="bg-gray-50 overflow-hidden rounded-lg px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">Pending Assignments</dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {safeAssignments.filter(a => !a.submitted).length}
-              </dd>
-            </div>
-          </dl>
+      </motion.div>
+      {/* Stats Grid */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <AcademicCapIcon className="h-8 w-8 text-primary-400 mb-2" />
+          <div className="text-3xl font-extrabold text-text-dark">{courses?.length || 0}</div>
+          <div className="text-text-medium mt-1">Enrolled Courses</div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <ClipboardDocumentCheckIcon className="h-8 w-8 text-accent-green mb-2" />
+          <div className="text-3xl font-extrabold text-text-dark">{quizResults?.length || 0}</div>
+          <div className="text-text-medium mt-1">Completed Quizzes</div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="bg-white/90 shadow-card rounded-2xl p-6 flex flex-col items-center border border-primary-50 hover:shadow-card-hover transition-all">
+          <DocumentTextIcon className="h-8 w-8 text-accent-yellow mb-2" />
+          <div className="text-3xl font-extrabold text-text-dark">{safeAssignments.filter(a => !a.submitted).length}</div>
+          <div className="text-text-medium mt-1">Pending Assignments</div>
+        </motion.div>
+      </motion.div>
+      {/* My Courses */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="bg-white/90 shadow-card rounded-2xl mb-8 border border-primary-50">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-text-dark">My Courses</h3>
+          <Link to="/courses" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">View all</Link>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Enrolled Courses */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="border-t border-neutral-50">
+          {courses.length > 0 ? (
+            <ul className="divide-y divide-neutral-50">
+              {courses.slice(0, 5).map((course, idx) => (
+                <motion.li key={course._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-primary-50/60 flex justify-between items-center rounded-xl transition-all">
+                  <Link to={`/courses/${course._id}`} className="flex justify-between items-center w-full">
+                    <div className="flex items-center">
+                      <AcademicCapIcon className="h-6 w-6 text-primary-400 mr-3" />
+                      <div>
+                        <p className="font-semibold text-text-dark">{course.title}</p>
+                        <p className="text-sm text-text-medium">{course.teacher?.name || 'Instructor'}</p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700 border border-primary-400 shadow">{course.code || 'Course'}</span>
+                  </Link>
+                </motion.li>
+              ))}
+            </ul>
+          ) : (
+            <div className="px-4 py-6 text-text-medium">You are not enrolled in any courses yet.</div>
+          )}
+        </div>
+      </motion.div>
+      {/* Recent Assignments & Quizzes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Recent Assignments */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="bg-white/90 shadow-card rounded-2xl border border-primary-50">
           <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">My Courses</h3>
-            <Link 
-              to="/courses" 
-              className="text-sm text-primary-600 hover:text-primary-900"
-            >
-              View all
-            </Link>
+            <h3 className="text-lg font-bold text-text-dark">Recent Assignments</h3>
+            <Link to="/assignments" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">View all</Link>
           </div>
-          
-          <div className="border-t border-gray-200">
-            {courses.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {courses.slice(0, 5).map(course => (
-                  <li key={course._id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <Link to={`/courses/${course._id}`} className="flex justify-between">
-                      <div className="flex items-center">
-                        <AcademicCapIcon className="h-6 w-6 text-primary-500 mr-3" />
-                        <div>
-                          <p className="font-medium text-gray-800">{course.title}</p>
-                          <p className="text-sm text-gray-500">
-                            {course.teacher?.name || 'Instructor'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="ml-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {course.code || 'Course'}
-                        </span>
-                      </div>
-                    </Link>
-                  </li>
+          <div className="border-t border-neutral-50">
+            {safeAssignments.length > 0 ? (
+              <ul className="divide-y divide-neutral-50">
+                {safeAssignments.slice(0, 5).map((assignment, idx) => (
+                  <motion.li key={assignment._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-accent-yellow/10 flex justify-between items-center rounded-xl transition-all">
+                    <div>
+                      <p className="font-semibold text-text-dark">{assignment.title}</p>
+                      <p className="text-xs text-text-medium">Due: {moment(assignment.deadline).format('MMM D, YYYY')}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${assignment.submitted ? 'bg-accent-green text-white' : 'bg-accent-yellow text-text-dark'} border shadow`}>{assignment.submitted ? 'Submitted' : 'Pending'}</span>
+                  </motion.li>
                 ))}
               </ul>
             ) : (
-              <div className="py-10 px-4 text-center">
-                <p className="text-gray-500">You're not enrolled in any courses yet.</p>
-                <Link 
-                  to="/courses" 
-                  className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
-                >
-                  Find Courses
-                </Link>
-              </div>
+              <div className="px-4 py-6 text-text-medium">No assignments found.</div>
             )}
           </div>
-        </div>
-        
-        {/* Quiz Results */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">My Quiz Results</h3>
+        </motion.div>
+        {/* Recent Quizzes */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="bg-white/90 shadow-card rounded-2xl border border-primary-50">
+          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-text-dark">Recent Quizzes</h3>
+            <Link to="/quizzes" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">View all</Link>
           </div>
-          
-          <div className="border-t border-gray-200">
-            {quizResults.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {quizResults.slice(0, 5).map(result => (
-                  <li key={result._id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <Link to={`/quizzes/${result.quiz}/results/${result._id}`} className="flex justify-between">
-                      <div>
-                        <p className="font-medium text-gray-800">{result.quizTitle}</p>
-                        <p className="text-sm text-gray-500">
-                          Completed {moment(result.completedAt).fromNow()}
-                        </p>
-                      </div>
-                      <div className="flex items-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          result.passed 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {result.score}/{result.totalPoints} ({Math.round((result.score/result.totalPoints)*100)}%)
-                        </span>
-                      </div>
-                    </Link>
-                  </li>
+          <div className="border-t border-neutral-50">
+            {quizzes.length > 0 ? (
+              <ul className="divide-y divide-neutral-50">
+                {quizzes.slice(0, 5).map((quiz, idx) => (
+                  <motion.li key={quiz._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-accent-yellow/10 flex justify-between items-center rounded-xl transition-all">
+                    <div>
+                      <p className="font-semibold text-text-dark">{quiz.title}</p>
+                      <p className="text-xs text-text-medium">Questions: {quiz.questions?.length || 0}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${quiz.completed ? 'bg-accent-green text-white' : 'bg-accent-yellow text-text-dark'} border shadow`}>{quiz.completed ? 'Completed' : 'Pending'}</span>
+                  </motion.li>
                 ))}
               </ul>
             ) : (
-              <div className="py-10 px-4 text-center">
-                <p className="text-gray-500">You haven't taken any quizzes yet.</p>
-              </div>
+              <div className="px-4 py-6 text-text-medium">No quizzes found.</div>
             )}
           </div>
-        </div>
-        
-        {/* Upcoming Assignments */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Upcoming Assignments</h3>
-          </div>
-          
-          <div className="border-t border-gray-200">
-            {safeAssignments.filter(a => !a.submitted).length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {safeAssignments
-                  .filter(a => !a.submitted)
-                  .slice(0, 5)
-                  .map(assignment => (
-                    <li key={assignment._id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                      <Link to={`/assignments/${assignment._id}`} className="flex justify-between">
-                        <div>
-                          <p className="font-medium text-gray-800">{assignment.title}</p>
-                          <p className="text-sm text-gray-500">
-                            {assignment.course?.title || 'Course'}
-                          </p>
-                        </div>
-                        <div className="flex items-center text-sm text-red-600">
-                          <ClockIcon className="mr-1 h-4 w-4" />
-                          Due {moment(assignment.dueDate).format('MMM D')}
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
-              <div className="py-10 px-4 text-center">
-                <p className="text-gray-500">No pending assignments. Great job!</p>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Recent Notices */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Notices</h3>
-          </div>
-          
-          <div className="border-t border-gray-200">
-            {notices.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {notices.slice(0, 5).map(notice => (
-                  <li key={notice._id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <Link to={`/courses/${notice.courseId}`} className="flex justify-between">
-                      <div>
-                        <div className="flex items-center">
-                          <p className="font-medium text-gray-800">{notice.title}</p>
-                          {notice.priority === 'high' && (
-                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Important
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {notice.courseTitle} • {moment(notice.createdAt).fromNow()}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="py-10 px-4 text-center">
-                <p className="text-gray-500">No recent notices.</p>
-              </div>
-            )}
-          </div>
-        </div>
+        </motion.div>
       </div>
+      {/* Notices */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="bg-white/90 shadow-card rounded-2xl mb-8 border border-primary-50">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-text-dark">Notices</h3>
+        </div>
+        <div className="border-t border-neutral-50">
+          {notices.length > 0 ? (
+            <ul className="divide-y divide-neutral-50">
+              {notices.slice(0, 5).map((notice, idx) => (
+                <motion.li key={notice._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-primary-50/60 flex justify-between items-center rounded-xl transition-all">
+                  <div>
+                    <p className="font-semibold text-text-dark">{notice.title}</p>
+                    <p className="text-xs text-text-medium">{moment(notice.createdAt).format('MMM D, YYYY')}</p>
+                  </div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${notice.priority === 'high' ? 'bg-action-red text-white' : notice.priority === 'medium' ? 'bg-action-orange text-white' : 'bg-primary-100 text-primary-700'} border shadow`}>{notice.priority?.charAt(0).toUpperCase() + notice.priority?.slice(1) || 'Low'}</span>
+                </motion.li>
+              ))}
+            </ul>
+          ) : (
+            <div className="px-4 py-6 text-text-medium">No notices found.</div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 };

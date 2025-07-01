@@ -171,23 +171,11 @@ const SubmitAssignment = () => {
   }
   
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-primary-600"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Back
-        </button>
-      </div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-md p-6"
-      >
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Submit Assignment</h1>
+    <div className="max-w-2xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 shadow-card rounded-2xl p-8 border border-primary-50">
+        <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-6 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+          Submit Assignment
+        </h1>
         
         <div className="bg-gray-50 p-4 rounded-md mb-6">
           <h2 className="font-medium text-gray-800 mb-2">{assignment.title}</h2>

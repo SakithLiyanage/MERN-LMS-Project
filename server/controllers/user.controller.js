@@ -154,3 +154,79 @@ exports.getEnrolledCourses = async (req, res) => {
     });
   }
 };
+
+// @desc    Student dashboard summary
+// @route   GET /api/users/me/dashboard
+// @access  Private/Student
+exports.getStudentDashboard = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password').populate('courses');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Fetch assignments, quizzes, quiz results, notices
+    const [assignments, quizzes, quizResults, notices] = await Promise.all([
+      // Assignments for enrolled courses
+      require('../models/assignment.model').find({ course: { $in: user.courses.map(c => c._id) } }),
+      // Quizzes for enrolled courses
+      require('../models/quiz.model').find({ course: { $in: user.courses.map(c => c._id) } }),
+      // Quiz results for this student
+      require('../models/quiz.model').aggregate([
+        { $unwind: '$results' },
+        { $match: { 'results.student': user._id } },
+        { $project: { quizId: '$_id', title: '$title', score: '$results.score', totalPoints: '$results.totalPoints', completedAt: '$results.completedAt' } }
+      ]),
+      // Notices for enrolled courses
+      require('../models/notice.model').find({ courseId: { $in: user.courses.map(c => c._id) } })
+    ]);
+
+    res.json({
+      success: true,
+      profile: user,
+      courses: user.courses,
+      assignments,
+      quizzes,
+      quizResults,
+      notices
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Teacher dashboard summary
+// @route   GET /api/users/me/dashboard-teacher
+// @access  Private/Teacher
+exports.getTeacherDashboard = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Fetch courses taught by teacher
+    const courses = await require('../models/course.model').find({ teacher: user._id });
+    const courseIds = courses.map(c => c._id);
+
+    // Fetch assignments, quizzes, notices for these courses
+    const [assignments, quizzes, notices] = await Promise.all([
+      require('../models/assignment.model').find({ course: { $in: courseIds } }),
+      require('../models/quiz.model').find({ course: { $in: courseIds } }),
+      require('../models/notice.model').find({ courseId: { $in: courseIds } })
+    ]);
+
+    // Student stats: total students across all courses
+    const students = await require('../models/user.model').countDocuments({ courses: { $in: courseIds }, role: 'student' });
+
+    res.json({
+      success: true,
+      profile: user,
+      courses,
+      assignments,
+      quizzes,
+      notices,
+      studentCount: students
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};

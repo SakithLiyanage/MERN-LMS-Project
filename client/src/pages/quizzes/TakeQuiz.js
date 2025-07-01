@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import AuthContext from '../../context/AuthContext';
 import { ClockIcon, ExclamationIcon } from '@heroicons/react/outline';
+import { motion } from 'framer-motion';
 
 const TakeQuiz = () => {
   const { id } = useParams();
@@ -317,84 +318,79 @@ const TakeQuiz = () => {
   const currentQuestion = quiz.questions[currentQuestionIndex];
   
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <div className="max-w-3xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 shadow-card rounded-2xl overflow-hidden border border-primary-50 backdrop-blur-md">
         {/* Header */}
-        <div className="bg-primary-600 text-white p-4">
+        <div className="bg-gradient-to-r from-primary-400 to-secondary-500 text-white p-6 rounded-t-2xl">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold">{quiz.title}</h1>
+            <h1 className="text-xl font-extrabold font-heading tracking-tight drop-shadow-lg">
+              {quiz.title}
+            </h1>
             {timeLeft !== null && (
-              <div className="flex items-center bg-white bg-opacity-25 px-3 py-1 rounded-md">
+              <div className="flex items-center bg-white/20 px-3 py-1 rounded-lg shadow-inner">
                 <ClockIcon className="h-5 w-5 mr-2" />
-                <span>
+                <span className="font-mono font-bold">
                   {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
                 </span>
               </div>
             )}
           </div>
-          <div className="flex justify-between mt-2 text-sm">
+          <div className="flex justify-between mt-2 text-sm opacity-90">
             <span>Question {currentQuestionIndex + 1} of {quiz.questions?.length || 0}</span>
             <span>{currentQuestion?.points || 1} points</span>
           </div>
         </div>
-        
         {/* Question */}
-        <div className="p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <motion.div key={currentQuestionIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-8">
+          <h2 className="text-lg font-semibold text-text-dark mb-4">
             {currentQuestion?.questionText || 'No question available'}
           </h2>
-          
           {currentQuestion?.image && (
             <div className="my-4">
               <img 
                 src={currentQuestion.image} 
                 alt="Question" 
-                className="max-w-full h-auto max-h-64 mx-auto"
+                className="max-w-full h-auto max-h-64 mx-auto rounded-xl shadow-md"
               />
             </div>
           )}
-          
           <div className="mt-6">
             {currentQuestion?.type === 'multiple' ? (
-              // Multiple choice (checkboxes)
               <div className="space-y-3">
                 {currentQuestion.options?.map((option, idx) => {
                   const currentAnswers = answers[currentQuestion._id] || [];
                   const isChecked = Array.isArray(currentAnswers) && currentAnswers.includes(idx);
-                  
                   return (
-                    <label key={idx} className="flex items-center space-x-3">
+                    <label key={idx} className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        className="h-5 w-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                        className="h-5 w-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500 transition-all"
                         checked={isChecked}
                         onChange={() => handleAnswerChange(currentQuestion._id, idx, true)}
                       />
-                      <span className="text-gray-700">{option.text}</span>
+                      <span className="text-gray-700 font-medium">{option.text}</span>
                     </label>
                   );
                 })}
               </div>
             ) : currentQuestion?.type === 'single' ? (
-              // Single choice (radio buttons)
               <div className="space-y-3">
                 {currentQuestion.options?.map((option, idx) => (
-                  <label key={idx} className="flex items-center space-x-3">
+                  <label key={idx} className="flex items-center space-x-3 cursor-pointer">
                     <input
                       type="radio"
-                      className="h-5 w-5 text-primary-600 border-gray-300 focus:ring-primary-500"
+                      className="h-5 w-5 text-primary-600 border-gray-300 focus:ring-primary-500 transition-all"
                       checked={answers[currentQuestion._id] === idx}
                       onChange={() => handleAnswerChange(currentQuestion._id, idx)}
                       name={`question-${currentQuestion._id}`}
                     />
-                    <span className="text-gray-700">{option.text}</span>
+                    <span className="text-gray-700 font-medium">{option.text}</span>
                   </label>
                 ))}
               </div>
             ) : (
-              // Text answer
               <textarea
-                className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 text-gray-700 border-2 border-primary-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-all bg-white/70 shadow-inner"
                 rows="4"
                 placeholder="Type your answer here..."
                 value={answers[currentQuestion?._id] || ''}
@@ -402,26 +398,20 @@ const TakeQuiz = () => {
               ></textarea>
             )}
           </div>
-        </div>
-        
+        </motion.div>
         {/* Navigation */}
-        <div className="px-6 py-4 bg-gray-50 flex justify-between">
+        <div className="px-8 py-4 bg-white/80 flex justify-between rounded-b-2xl border-t border-primary-50">
           <button
             onClick={handlePreviousQuestion}
             disabled={currentQuestionIndex === 0}
-            className={`px-4 py-2 border rounded-md ${
-              currentQuestionIndex === 0
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all shadow ${currentQuestionIndex === 0 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 hover:from-primary-200 hover:to-secondary-200'}`}
           >
             Previous
           </button>
-          
           {currentQuestionIndex < (quiz.questions?.length - 1) ? (
             <button
               onClick={handleNextQuestion}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              className="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-primary-400 to-secondary-500 text-white shadow hover:from-primary-500 hover:to-secondary-600 transition-all"
             >
               Next
             </button>
@@ -429,40 +419,29 @@ const TakeQuiz = () => {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className={`px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 ${
-                submitting ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-accent-green to-primary-400 text-white shadow hover:from-green-500 hover:to-primary-500 transition-all ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {submitting ? 'Submitting...' : 'Submit Quiz'}
             </button>
           )}
         </div>
-        
         {/* Question navigation */}
-        <div className="px-6 py-4 border-t border-gray-200">
-          <p className="text-sm text-gray-600 mb-2">Question Navigation:</p>
+        <div className="px-8 py-4 border-t border-primary-50 bg-white/70 rounded-b-2xl">
+          <p className="text-sm text-gray-600 mb-2 font-semibold">Question Navigation:</p>
           <div className="flex flex-wrap gap-2">
             {quiz.questions?.map((question, idx) => {
               const questionAnswer = answers[question?._id];
               let hasAnswer = false;
-              
               if (question?.type === 'multiple') {
                 hasAnswer = Array.isArray(questionAnswer) && questionAnswer.length > 0;
               } else {
                 hasAnswer = questionAnswer !== undefined && questionAnswer !== null && questionAnswer !== '';
               }
-              
               return (
                 <button
                   key={idx}
                   onClick={() => setCurrentQuestionIndex(idx)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                    idx === currentQuestionIndex
-                      ? 'bg-primary-600 text-white'
-                      : hasAnswer
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow transition-all border-2 ${idx === currentQuestionIndex ? 'bg-primary-400 text-white border-primary-500 scale-110' : hasAnswer ? 'bg-accent-green/80 text-white border-accent-green' : 'bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300'}`}
                 >
                   {idx + 1}
                 </button>
@@ -470,7 +449,7 @@ const TakeQuiz = () => {
             })}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

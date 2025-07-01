@@ -4,6 +4,7 @@ import StudentDashboard from './StudentDashboard';
 import AuthContext from '../../context/AuthContext';
 // If using any Heroicons, update imports to v2 format
 import { UserIcon } from '@heroicons/react/24/outline';
+import { motion } from 'framer-motion';
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);

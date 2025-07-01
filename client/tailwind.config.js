@@ -7,28 +7,46 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          DEFAULT: '#1E90FF', // Light Blue
+          50: '#e6f2ff',
+          100: '#b3d8ff',
+          200: '#80bdff',
+          300: '#4da3ff',
+          400: '#1E90FF',
+          500: '#187bcd',
+          600: '#136299',
+          700: '#0d4966',
+          800: '#082033',
+          900: '#05101a',
         },
         secondary: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
+          DEFAULT: '#0A3D62', // Dark Blue
+          50: '#e3eaf2',
+          100: '#b8cbe0',
+          200: '#8dacce',
+          300: '#628dbd',
+          400: '#376eab',
+          500: '#0A3D62',
+          600: '#08314e',
+          700: '#06243b',
+          800: '#041827',
+          900: '#020c14',
+        },
+        neutral: {
+          50: '#F4F4F4', // Soft Gray
+          100: '#FFFFFF', // White
+        },
+        accent: {
+          yellow: '#FFEB3B', // Warm Yellow
+          green: '#28A745', // Bright Green
+        },
+        action: {
+          orange: '#FF8C00',
+          red: '#DC3545',
+        },
+        text: {
+          dark: '#333333',
+          medium: '#666666',
         },
       },
       fontFamily: {

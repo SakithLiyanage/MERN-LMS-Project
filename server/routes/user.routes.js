@@ -10,7 +10,9 @@ const {
   updateUser,
   deleteUser,
   updatePassword,
-  getEnrolledCourses
+  getEnrolledCourses,
+  getStudentDashboard,
+  getTeacherDashboard
 } = require('../controllers/user.controller');
 
 // Routes for admin only
@@ -26,5 +28,9 @@ router.delete('/:id', protect, authorize('admin'), deleteUser);
 
 // Add student dashboard routes
 router.get('/me/courses', protect, authorize('student'), getEnrolledCourses);
+
+// Dashboard endpoints
+router.get('/me/dashboard', protect, authorize('student'), getStudentDashboard);
+router.get('/me/dashboard-teacher', protect, authorize('teacher'), getTeacherDashboard);
 
 module.exports = router;

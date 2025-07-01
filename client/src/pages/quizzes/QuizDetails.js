@@ -103,7 +103,34 @@ const QuizDetails = () => {
   }
   
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 shadow-card rounded-2xl p-6 mb-8 border border-primary-50">
+        <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-2 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+          {quiz.title}
+        </h1>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700 border border-primary-400 shadow">
+            Questions: {quiz.questions?.length || 0}
+          </span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-yellow text-text-dark border border-accent-yellow shadow">
+            Time Limit: {quiz.timeLimit || 'No limit'} min
+          </span>
+          {quiz.availableFrom && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-green text-white border border-accent-green shadow">
+              Available from: {moment(quiz.availableFrom).format('MMM D, YYYY')}
+            </span>
+          )}
+          {quiz.availableTo && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-action-orange text-white border border-action-orange shadow">
+              Available until: {moment(quiz.availableTo).format('MMM D, YYYY')}
+            </span>
+          )}
+        </div>
+        <div className="prose max-w-none text-text-dark">
+          {quiz.description}
+        </div>
+      </motion.div>
+      
       {/* Back Button */}
       <div className="mb-6">
         <button

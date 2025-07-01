@@ -10,6 +10,7 @@ import {
   FilmIcon,
   DocumentTextIcon
 } from '@heroicons/react/outline';
+import { motion } from 'framer-motion';
 
 const CreateMaterial = () => {
   const { courseId } = useParams();
@@ -114,11 +115,13 @@ const CreateMaterial = () => {
   }
   
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Add Course Material</h1>
-      
-      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
-        <div className="space-y-6">
+    <div className="max-w-2xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 shadow-card rounded-2xl p-8 border border-primary-50">
+        <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-6 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+          Upload Material
+        </h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Material Title */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
@@ -282,8 +285,8 @@ const CreateMaterial = () => {
               {loading ? 'Uploading...' : 'Upload Material'}
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      </motion.div>
     </div>
   );
 };

@@ -10,6 +10,7 @@ import {
   ArrowLeftIcon,
   DocumentDownloadIcon,
 } from '@heroicons/react/outline';
+import { motion } from 'framer-motion';
 
 const QuizResult = () => {
   const { id: quizId } = useParams();
@@ -191,161 +192,139 @@ const QuizResult = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {/* Header */}
-        <div className={`p-6 text-white ${isPassed ? 'bg-green-600' : 'bg-red-600'}`}>
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">{quiz?.title || 'Quiz'} - Results</h1>
-            <div className="flex items-center">
-              {isPassed ? (
-                <CheckCircleIcon className="w-8 h-8 mr-2" />
-              ) : (
-                <XCircleIcon className="w-8 h-8 mr-2" />
-              )}
-              <div>
-                <div className="text-xl font-bold">{percentage}%</div>
-                <div className="text-sm opacity-80">
-                  {isPassed ? 'Passed' : 'Failed'}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 text-sm opacity-80">
-            Completed: {moment(result.submittedAt).format('MMMM D, YYYY [at] h:mm A')}
-          </div>
+    <div className="max-w-3xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 shadow-card rounded-2xl p-8 mb-8 border border-primary-50 backdrop-blur-md">
+        <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-2 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+          Quiz Results
+        </h1>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700 border border-primary-400 shadow">
+            Score: {result.score} / {result.totalPossibleScore}
+          </span>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border shadow ${isPassed ? 'bg-accent-green text-white' : 'bg-action-red text-white'}`}>
+            {isPassed ? 'Passed' : 'Failed'}
+          </span>
         </div>
+        <div className="prose max-w-none text-text-dark mb-4">
+          {result.feedback}
+        </div>
+        <div className="mt-4 text-sm opacity-80">
+          Completed: {moment(result.submittedAt).format('MMMM D, YYYY [at] h:mm A')}
+        </div>
+        <div className="mt-4 text-sm opacity-80">
+          Time Taken: {formatTime(result.timeTaken)}
+        </div>
+        <div className="mt-4 text-sm opacity-80">
+          Correct Answers: {correctAnswers}/{totalQuestions}
+        </div>
+        <div className="mt-4 text-sm opacity-80">
+          Passing Score: 70%
+        </div>
+      </motion.div>
+      
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Question Review</h2>
         
-        {/* Summary */}
-        <div className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{result.score}/{result.totalPossibleScore}</div>
-              <div className="text-xs text-gray-500">Points</div>
-            </div>
+        <div className="space-y-6">
+          {result.answers?.map((answer, idx) => {
+            const isCorrect = answer.isCorrect;
             
-            <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{correctAnswers}/{totalQuestions}</div>
-              <div className="text-xs text-gray-500">Correct Answers</div>
-            </div>
-            
-            <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">70%</div>
-              <div className="text-xs text-gray-500">Passing Score</div>
-            </div>
-            
-            <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{formatTime(result.timeTaken)}</div>
-              <div className="text-xs text-gray-500">Time Taken</div>
-            </div>
-          </div>
-          
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Question Review</h2>
-          
-          <div className="space-y-6">
-            {result.answers?.map((answer, idx) => {
-              const isCorrect = answer.isCorrect;
-              
-              return (
-                <div
-                  key={answer.question || idx}
-                  className={`p-4 rounded-lg border ${
-                    isCorrect
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
-                  }`}
-                >
-                  <div className="flex">
-                    <div className="flex-shrink-0 mt-1">
-                      {isCorrect ? (
-                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <XCircleIcon className="h-5 w-5 text-red-500" />
-                      )}
+            return (
+              <motion.div
+                key={answer.question || idx}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: idx * 0.08 }}
+                className={`p-4 rounded-2xl border shadow-card backdrop-blur-md ${isCorrect ? 'bg-green-50/80 border-green-200' : 'bg-red-50/80 border-red-200'}`}
+              >
+                <div className="flex">
+                  <div className="flex-shrink-0 mt-1">
+                    {isCorrect ? (
+                      <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircleIcon className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="font-medium">Question {idx + 1}</h3>
+                    <p className="text-gray-800 mt-1">{answer.questionText}</p>
+                    
+                    <div className="mt-3">
+                      <p className="text-sm font-medium text-gray-500">Your Answer:</p>
+                      <div className="mt-1 text-sm">
+                        {answer.textAnswer ? (
+                          <p className="italic bg-gray-100/80 p-2 rounded-lg shadow-inner">{answer.textAnswer}</p>
+                        ) : answer.selectedOptionTexts ? (
+                          <ul className="list-disc pl-5 space-y-1">
+                            {answer.selectedOptionTexts.map((text, i) => (
+                              <li key={i} className="bg-gray-100/80 p-1 rounded-lg shadow-inner">
+                                {text}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-gray-400 italic">No answer provided</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="ml-3 flex-1">
-                      <h3 className="font-medium">Question {idx + 1}</h3>
-                      <p className="text-gray-800 mt-1">{answer.questionText}</p>
-                      
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-gray-500">Your Answer:</p>
+                    
+                    {!isCorrect && (
+                      <div className="mt-3 bg-white/80 p-2 rounded-lg border border-gray-200 shadow-inner">
+                        <p className="text-sm font-medium text-gray-500">Correct Answer:</p>
                         <div className="mt-1 text-sm">
-                          {answer.textAnswer ? (
-                            <p className="italic bg-gray-100 p-2 rounded">{answer.textAnswer}</p>
-                          ) : answer.selectedOptionTexts ? (
+                          {answer.correctTextAnswers ? (
                             <ul className="list-disc pl-5 space-y-1">
-                              {answer.selectedOptionTexts.map((text, i) => (
-                                <li key={i} className="bg-gray-100 p-1 rounded">
+                              {answer.correctTextAnswers.map((text, i) => (
+                                <li key={i} className="text-green-700 font-medium">
+                                  {text}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : answer.correctOptionTexts ? (
+                            <ul className="list-disc pl-5 space-y-1">
+                              {answer.correctOptionTexts.map((text, i) => (
+                                <li key={i} className="text-green-700 font-medium">
                                   {text}
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-gray-400 italic">No answer provided</p>
+                            <p className="text-gray-400 italic">Correct answer not available</p>
                           )}
                         </div>
                       </div>
-                      
-                      {!isCorrect && (
-                        <div className="mt-3 bg-white p-2 rounded border border-gray-200">
-                          <p className="text-sm font-medium text-gray-500">Correct Answer:</p>
-                          <div className="mt-1 text-sm">
-                            {answer.correctTextAnswers ? (
-                              <ul className="list-disc pl-5 space-y-1">
-                                {answer.correctTextAnswers.map((text, i) => (
-                                  <li key={i} className="text-green-700 font-medium">
-                                    {text}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : answer.correctOptionTexts ? (
-                              <ul className="list-disc pl-5 space-y-1">
-                                {answer.correctOptionTexts.map((text, i) => (
-                                  <li key={i} className="text-green-700 font-medium">
-                                    {text}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-gray-400 italic">Correct answer not available</p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {answer.explanation && (
-                        <div className="mt-3 bg-blue-50 p-2 rounded border border-blue-200">
-                          <p className="text-sm font-medium text-blue-700">Explanation:</p>
-                          <p className="mt-1 text-sm text-blue-800">{answer.explanation}</p>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    
+                    {answer.explanation && (
+                      <div className="mt-3 bg-blue-50/80 p-2 rounded-lg border border-blue-200 shadow-inner">
+                        <p className="text-sm font-medium text-blue-700">Explanation:</p>
+                        <p className="mt-1 text-sm text-blue-800">{answer.explanation}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </motion.div>
+            );
+          })}
         </div>
+      </div>
+      
+      <div className="mt-8 flex flex-wrap gap-4">
+        <Link
+          to={`/courses/${quiz?.course || '#'}`}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-semibold text-gray-700 bg-white/80 hover:bg-gray-50 transition-all"
+        >
+          <ArrowLeftIcon className="mr-2 h-4 w-4" />
+          Back to Course
+        </Link>
         
-        {/* Actions */}
-        <div className="px-6 py-4 bg-gray-50 flex justify-between items-center">
-          <Link
-            to={`/courses/${quiz?.course || '#'}`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Course
-          </Link>
-          
-          <button
-            onClick={downloadResults}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
-          >
-            <DocumentDownloadIcon className="mr-2 h-4 w-4" />
-            Download Results
-          </button>
-        </div>
+        <button
+          onClick={downloadResults}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-primary-400 to-secondary-500 hover:from-primary-500 hover:to-secondary-600 transition-all"
+        >
+          <DocumentDownloadIcon className="mr-2 h-4 w-4" />
+          Download Results
+        </button>
       </div>
     </div>
   );

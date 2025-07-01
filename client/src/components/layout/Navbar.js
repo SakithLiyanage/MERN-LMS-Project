@@ -1,35 +1,38 @@
 import React, { useContext, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import {
   BellIcon,
   UserCircleIcon,
-  MenuIcon, // This was likely Bars3Icon in v2
-  XIcon // This was likely XMarkIcon in v2
+  MenuIcon,
+  XIcon
 } from '@heroicons/react/outline';
 import AuthContext from '../../context/AuthContext';
 
-const navigation = [
-  { name: 'Home', to: '/', current: true, public: true },
-  { name: 'Courses', to: '/courses', current: false, public: false },
-  { name: 'Assignments', to: '/assignments', current: false, public: false },
-  { name: 'Quizzes', to: '/quizzes', current: false, public: false },
-];
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ');
-}
-
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useContext(AuthContext);
+  const location = useLocation();
   const [notifications] = useState([
     { id: 1, text: 'New assignment posted', read: false },
     { id: 2, text: 'Your quiz was graded', read: false },
   ]);
 
+  const navLinks = [
+    { name: 'Home', to: '/', public: true },
+    { name: 'Courses', to: '/courses', public: false },
+  ];
+
+  function isActive(path) {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  }
+
+  function classNames(...classes) {
+    return classes.filter(Boolean).join(' ');
+  }
+
   return (
-    <Disclosure as="nav" className="bg-white shadow-md">
+    <Disclosure as="nav" className="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-neutral-50">
       {({ open }) => (
         <>
           <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -50,24 +53,24 @@ const Navbar = () => {
                   <Link to="/">
                     <motion.div
                       whileHover={{ scale: 1.05 }}
-                      className="text-xl font-bold text-primary-600"
+                      className="text-2xl font-extrabold font-heading text-primary-400 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent"
                     >
                       LMS Portal
                     </motion.div>
                   </Link>
                 </div>
                 <div className="hidden sm:ml-6 sm:block">
-                  <div className="flex space-x-4">
-                    {navigation.map((item) => (
+                  <div className="flex space-x-2">
+                    {navLinks.map((item) => (
                       (item.public || isAuthenticated) && (
                         <Link
                           key={item.name}
                           to={item.to}
                           className={classNames(
-                            item.current
-                              ? 'bg-primary-100 text-primary-700'
-                              : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700',
-                            'rounded-md px-3 py-2 text-sm font-medium transition-colors'
+                            isActive(item.to)
+                              ? 'bg-primary-100 text-primary-700 shadow-lg'
+                              : 'text-text-dark hover:bg-primary-50 hover:text-primary-500',
+                            'rounded-xl px-4 py-2 text-base font-semibold transition-all duration-200 ease-in-out backdrop-blur-md'
                           )}
                         >
                           {item.name}
@@ -83,7 +86,7 @@ const Navbar = () => {
                     {/* Notification dropdown */}
                     <Menu as="div" className="relative ml-3">
                       <div>
-                        <Menu.Button className="relative flex rounded-full bg-white text-sm focus:outline-none">
+                        <Menu.Button className="relative flex rounded-full bg-white/70 shadow border border-primary-100 text-sm focus:outline-none transition-all duration-200">
                           <span className="sr-only">View notifications</span>
                           <BellIcon className="h-6 w-6 text-gray-700" />
                           {notifications.filter(n => !n.read).length > 0 && (
@@ -121,13 +124,12 @@ const Navbar = () => {
                         </Menu.Items>
                       </Transition>
                     </Menu>
-
                     {/* Profile dropdown */}
                     <Menu as="div" className="relative ml-3">
                       <div>
-                        <Menu.Button className="flex rounded-full bg-gray-100 text-sm focus:outline-none">
+                        <Menu.Button className="flex rounded-full bg-white/70 shadow border border-primary-100 text-sm focus:outline-none transition-all duration-200">
                           <span className="sr-only">Open user menu</span>
-                          <div className="h-8 w-8 rounded-full flex items-center justify-center bg-primary-100 text-primary-700 font-semibold">
+                          <div className="h-8 w-8 rounded-full flex items-center justify-center bg-primary-100 text-primary-700 font-bold border-2 border-primary-400 shadow">
                             {user?.name?.charAt(0).toUpperCase()}
                           </div>
                         </Menu.Button>
@@ -140,7 +142,7 @@ const Navbar = () => {
                         leaveFrom="transform opacity-100 scale-100"
                         leaveTo="transform opacity-0 scale-95"
                       >
-                        <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-xl bg-white/90 shadow-lg ring-1 ring-primary-100 focus:outline-none backdrop-blur-md">
                           <Menu.Item>
                             {({ active }) => (
                               <Link
@@ -148,16 +150,6 @@ const Navbar = () => {
                                 className={classNames(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}
                               >
                                 Dashboard
-                              </Link>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                              <Link
-                                to="/profile"
-                                className={classNames(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}
-                              >
-                                Your Profile
                               </Link>
                             )}
                           </Menu.Item>
@@ -194,20 +186,19 @@ const Navbar = () => {
               </div>
             </div>
           </div>
-
           <Disclosure.Panel className="sm:hidden">
             <div className="space-y-1 px-2 pb-3 pt-2">
-              {navigation.map((item) => (
+              {navLinks.map((item) => (
                 (item.public || isAuthenticated) && (
                   <Disclosure.Button
                     key={item.name}
                     as={Link}
                     to={item.to}
                     className={classNames(
-                      item.current
-                        ? 'bg-primary-100 text-primary-700'
+                      isActive(item.to)
+                        ? 'bg-primary-100 text-primary-700 shadow'
                         : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700',
-                      'block rounded-md px-3 py-2 text-base font-medium'
+                      'block rounded-md px-3 py-2 text-base font-semibold'
                     )}
                   >
                     {item.name}

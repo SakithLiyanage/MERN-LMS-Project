@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   BookOpenIcon
 } from '@heroicons/react/outline';
+import { motion } from 'framer-motion';
 
 const EditCourse = () => {
   const { id } = useParams();
@@ -117,121 +118,124 @@ const EditCourse = () => {
   }
   
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-primary-600"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Back to Course
-        </button>
-      </div>
-      
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Edit Course</h1>
-      
-      <form onSubmit={onSubmit} className="bg-white shadow-md rounded-lg p-6">
-        <div className="space-y-6">
-          {/* Course Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Course Title*
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={title}
-              onChange={onChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g., Introduction to Web Development"
-            />
-          </div>
-          
-          {/* Course Code */}
-          <div>
-            <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-              Course Code*
-            </label>
-            <input
-              type="text"
-              id="code"
-              name="code"
-              value={code}
-              onChange={onChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g., WEB101"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              A unique code for your course. Students will use this to find your course.
-            </p>
-          </div>
-          
-          {/* Course Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description*
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={description}
-              onChange={onChange}
-              required
-              rows="4"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Provide a detailed description of your course"
-            ></textarea>
-          </div>
-          
-          {/* Course Cover Image */}
-          <div>
-            <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">
-              Cover Image
-            </label>
-            <input
-              type="file"
-              id="coverImage"
-              name="coverImage"
-              onChange={onChange}
-              accept="image/*"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Upload a new image to replace the current one.
-            </p>
-          </div>
-          
-          {/* Image Preview */}
-          {previewImage && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
-              <div className="relative w-full h-48 rounded-lg overflow-hidden">
-                <img
-                  src={previewImage}
-                  alt="Course cover preview"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          )}
-          
-          {/* Submit Button */}
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`w-full py-2 px-4 border border-transparent rounded-md font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                submitting ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              {submitting ? 'Updating...' : 'Update Course'}
-            </button>
-          </div>
+    <div className="max-w-2xl mx-auto py-8 px-2 sm:px-6 lg:px-8 bg-neutral-50 min-h-screen">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 shadow-card rounded-2xl p-8 border border-primary-50">
+        <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-6 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+          Edit Course
+        </h1>
+        <div className="mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-600 hover:text-primary-600"
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            Back to Course
+          </button>
         </div>
-      </form>
+        
+        <form onSubmit={onSubmit} className="bg-white shadow-md rounded-lg p-6">
+          <div className="space-y-6">
+            {/* Course Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Course Title*
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={title}
+                onChange={onChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                placeholder="e.g., Introduction to Web Development"
+              />
+            </div>
+            
+            {/* Course Code */}
+            <div>
+              <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
+                Course Code*
+              </label>
+              <input
+                type="text"
+                id="code"
+                name="code"
+                value={code}
+                onChange={onChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                placeholder="e.g., WEB101"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                A unique code for your course. Students will use this to find your course.
+              </p>
+            </div>
+            
+            {/* Course Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description*
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={description}
+                onChange={onChange}
+                required
+                rows="4"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Provide a detailed description of your course"
+              ></textarea>
+            </div>
+            
+            {/* Course Cover Image */}
+            <div>
+              <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 mb-1">
+                Cover Image
+              </label>
+              <input
+                type="file"
+                id="coverImage"
+                name="coverImage"
+                onChange={onChange}
+                accept="image/*"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Upload a new image to replace the current one.
+              </p>
+            </div>
+            
+            {/* Image Preview */}
+            {previewImage && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                  <img
+                    src={previewImage}
+                    alt="Course cover preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Submit Button */}
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`w-full py-2 px-4 border border-transparent rounded-md font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
+                  submitting ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
+              >
+                {submitting ? 'Updating...' : 'Update Course'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </motion.div>
     </div>
   );
 };

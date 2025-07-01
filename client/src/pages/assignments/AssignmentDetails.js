@@ -25,6 +25,7 @@ const AssignmentDetails = () => {
   const [error, setError] = useState(null);
   const [submissionFile, setSubmissionFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const isTeacher = user?.role === 'teacher';
   const isStudent = user?.role === 'student';
@@ -58,7 +59,7 @@ const AssignmentDetails = () => {
     };
     
     fetchAssignmentDetails();
-  }, [id]);
+  }, [id, refreshKey]);
   
   const handleFileChange = (e) => {
     setSubmissionFile(e.target.files[0]);
@@ -95,17 +96,8 @@ const AssignmentDetails = () => {
     try {
       console.log('Grading submission:', { submissionId, grade, feedback });
       await axios.put(`${BACKEND_URL}/api/submissions/${submissionId}/grade`, { grade, feedback });
-      
-      // Update the local state with the new grade
-      setAssignment(prevState => ({
-        ...prevState,
-        submissions: prevState.submissions.map(sub => 
-          sub._id === submissionId 
-            ? { ...sub, grade, feedback, graded: true } 
-            : sub
-        ),
-      }));
-      
+      // Refetch assignment details to update UI
+      setRefreshKey(prev => prev + 1);
       toast.success('Submission graded successfully!');
     } catch (error) {
       console.error('Error grading submission:', error);
@@ -169,73 +161,73 @@ const AssignmentDetails = () => {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-neutral-50 min-h-screen py-8 px-2 sm:px-6 lg:px-8">
       {/* Back Button */}
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-primary-600"
+          className="flex items-center text-text-medium hover:text-primary-500 font-semibold mb-2"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
           Back
         </button>
-      </div>
+      </motion.div>
       
       {/* Assignment Header */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-white/90 rounded-2xl shadow-card border border-primary-50 overflow-hidden">
         <div className="p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">{assignment.title}</h1>
+              <h1 className="text-2xl font-extrabold font-heading text-primary-400 mb-2 drop-shadow-lg tracking-tight bg-gradient-to-r from-primary-400 to-secondary-500 bg-clip-text text-transparent">
+                {assignment.title}
+              </h1>
               <div className="flex flex-wrap gap-2 mb-4">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-700 border border-primary-400 shadow">
                   Course: {assignment.course?.title}
                 </span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-yellow text-text-dark border border-accent-yellow shadow">
                   Points: {assignment.totalPoints}
                 </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  isDeadlinePassed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                }`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${isDeadlinePassed ? 'bg-action-red text-white' : 'bg-accent-green text-white'} border shadow`}>
                   <ClockIcon className="h-3 w-3 mr-1" />
                   Due: {moment(assignment.deadline).format('MMM D, YYYY [at] h:mm A')}
                 </span>
               </div>
-              <div className="prose max-w-none text-gray-600">
+              <div className="prose max-w-none text-text-dark">
                 {assignment.description}
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Attachments Section */}
       {assignment.attachments && assignment.attachments.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Attachments</h2>
-          <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="mb-8 bg-white/90 rounded-xl border border-primary-50 shadow-card">
+          <h2 className="text-lg font-bold text-text-dark mb-2 px-6 pt-6">Attachments</h2>
+          <ul className="divide-y divide-neutral-50 border-t border-neutral-50 rounded-md">
             {assignment.attachments.map((attachment, index) => (
-              <li key={index} className="py-3 px-4 flex items-center justify-between text-sm">
+              <li key={index} className="py-3 px-6 flex items-center justify-between text-sm">
                 <div className="flex items-center">
-                  <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-gray-900">{attachment.fileName}</span>
+                  <DocumentTextIcon className="h-5 w-5 text-primary-400 mr-3" />
+                  <span className="text-text-dark">{attachment.fileName}</span>
                 </div>
                 <button
                   onClick={() => handleDownload(attachment.fileUrl, attachment.originalName)}
-                  className="inline-flex items-center px-3 py-1 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  className="inline-flex items-center px-3 py-1 bg-primary-400 text-white rounded-lg hover:bg-primary-500 transition-colors font-semibold shadow"
                 >
                   Download {attachment.originalName || attachment.fileUrl}
                 </button>
               </li>
             ))}
           </ul>
-        </div>
+        </motion.div>
       )}
 
       {/* Student Submission Section */}
       {isStudent && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Submission</h2>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-white/90 rounded-2xl shadow-card border border-primary-50 p-6">
+          <h2 className="text-lg font-bold text-text-dark mb-4">Your Submission</h2>
           
           {studentSubmission && studentSubmission.attachments && studentSubmission.attachments.length > 0 ? (
             <div className="mt-4">
@@ -284,13 +276,13 @@ const AssignmentDetails = () => {
               </button>
             </form>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Teacher Submissions Overview */}
       {isTeacher && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Student Submissions</h2>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="bg-white/90 rounded-2xl shadow-card border border-primary-50 p-6">
+          <h2 className="text-lg font-bold text-text-dark mb-4">Student Submissions</h2>
           
           {assignment.submissions && assignment.submissions.length > 0 ? (
             <div className="mt-6">
@@ -352,7 +344,7 @@ const AssignmentDetails = () => {
               <p className="text-gray-500">No submissions yet.</p>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );
@@ -376,16 +368,22 @@ const ModernGradeSubmissionForm = ({ submissionId, totalPoints, onGradeSubmit, d
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-gray-50 p-4 rounded shadow">
+    <motion.form
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="flex flex-col gap-3 bg-white/80 border border-primary-100 rounded-xl shadow-card p-4 backdrop-blur-md"
+    >
       <div className="flex items-center gap-2">
-        <label className="font-medium">Grade:</label>
+        <label className="font-semibold text-primary-600">Grade:</label>
         <input
           type="number"
           min={0}
           max={totalPoints}
           value={grade}
           onChange={e => setGrade(e.target.value)}
-          className="w-20 px-2 py-1 border rounded"
+          className="w-20 px-2 py-1 border-2 border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all bg-white/70 text-text-dark font-bold shadow-sm"
           required
         />
         <span className="text-gray-500">/ {totalPoints}</span>
@@ -394,17 +392,17 @@ const ModernGradeSubmissionForm = ({ submissionId, totalPoints, onGradeSubmit, d
         value={feedback}
         onChange={e => setFeedback(e.target.value)}
         placeholder="Feedback (optional)"
-        className="px-2 py-1 border rounded resize-none"
+        className="px-3 py-2 border-2 border-primary-100 rounded-lg resize-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 transition-all bg-white/70 text-text-dark shadow-sm"
         rows={2}
       />
       <button
         type="submit"
-        className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 font-semibold"
+        className="bg-gradient-to-r from-primary-400 to-secondary-500 text-white px-4 py-2 rounded-lg font-bold shadow hover:scale-105 hover:from-primary-500 hover:to-secondary-600 transition-all duration-200"
         disabled={submitting}
       >
         {submitting ? 'Grading...' : 'Submit Grade'}
       </button>
-    </form>
+    </motion.form>
   );
 };
 
