@@ -1,5 +1,6 @@
 const Quiz = require('../models/quiz.model');
 const Course = require('../models/course.model');
+const mongoose = require('mongoose');
 
 // @desc    Create new quiz
 // @route   POST /api/quizzes
@@ -16,6 +17,8 @@ exports.createQuiz = async (req, res) => {
       isPublished,
       questions
     } = req.body;
+    
+    console.log('Creating quiz with questions:', JSON.stringify(questions, null, 2));
     
     // Check if user is the teacher of the course
     const courseDoc = await Course.findById(course);
@@ -52,7 +55,13 @@ exports.createQuiz = async (req, res) => {
       quiz,
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error creating quiz:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -65,15 +74,17 @@ exports.getTeacherQuizzes = async (req, res) => {
     const quizzes = await Quiz.find({ teacher: req.user.id })
       .populate('course', 'title code')
       .sort('-createdAt');
-    
+    if (!quizzes) {
+      return res.status(200).json({ success: true, count: 0, quizzes: [] });
+    }
     res.json({
       success: true,
       count: quizzes.length,
       quizzes: quizzes,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error in getTeacherQuizzes:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -143,10 +154,8 @@ exports.getStudentQuizzes = async (req, res) => {
 exports.getQuiz = async (req, res) => {
   try {
     console.log('Fetching quiz with ID:', req.params.id);
-    
     const quiz = await Quiz.findById(req.params.id)
       .populate('course', 'title code');
-    
     if (!quiz) {
       console.log('Quiz not found with ID:', req.params.id);
       return res.status(404).json({
@@ -154,7 +163,6 @@ exports.getQuiz = async (req, res) => {
         message: 'Quiz not found'
       });
     }
-    
     console.log('Quiz found:', quiz.title);
     
     // Ensure questions array exists
@@ -240,33 +248,84 @@ exports.updateQuiz = async (req, res) => {
 // @access  Private/Teacher
 exports.deleteQuiz = async (req, res) => {
   try {
+    console.log('=== DELETE QUIZ REQUEST ===');
+    console.log('Quiz ID:', req.params.id);
+    console.log('User ID:', req.user.id);
+    console.log('User Role:', req.user.role);
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('Invalid ObjectId format:', req.params.id);
+      return res.status(400).json({ message: 'Invalid quiz ID format' });
+    }
+    
+    // Step 1: Find the quiz
+    console.log('Step 1: Finding quiz...');
     const quiz = await Quiz.findById(req.params.id);
     
     if (!quiz) {
+      console.log('Quiz not found');
       return res.status(404).json({ message: 'Quiz not found' });
     }
     
-    // Check if user is the teacher who created the quiz
+    console.log('Quiz found:', {
+      id: quiz._id,
+      title: quiz.title,
+      teacher: quiz.teacher,
+      course: quiz.course
+    });
+    
+    // Step 2: Check authorization
+    console.log('Step 2: Checking authorization...');
     if (quiz.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+      console.log('Authorization failed');
       return res.status(403).json({ message: 'Not authorized to delete this quiz' });
     }
     
-    // Remove quiz from course
-    await Course.findByIdAndUpdate(
-      quiz.course,
-      { $pull: { quizzes: quiz._id } }
-    );
+    console.log('Authorization passed');
     
-    // Delete quiz
-    await quiz.remove();
+    // Step 3: Delete the quiz first
+    console.log('Step 3: Deleting quiz...');
+    const deletedQuiz = await Quiz.findByIdAndDelete(req.params.id);
+    
+    if (!deletedQuiz) {
+      console.log('Quiz deletion failed - quiz not found');
+      return res.status(404).json({ message: 'Quiz not found for deletion' });
+    }
+    
+    console.log('Quiz deleted successfully');
+    
+    // Step 4: Remove from course (optional - don't fail if this doesn't work)
+    console.log('Step 4: Removing from course...');
+    try {
+      await Course.findByIdAndUpdate(
+        quiz.course,
+        { $pull: { quizzes: quiz._id } }
+      );
+      console.log('Quiz removed from course successfully');
+    } catch (courseError) {
+      console.log('Warning: Could not remove quiz from course:', courseError.message);
+      // Don't fail the entire operation if course update fails
+    }
+    
+    console.log('=== QUIZ DELETION COMPLETED SUCCESSFULLY ===');
     
     res.json({
       success: true,
       message: 'Quiz deleted successfully',
     });
+    
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('=== ERROR IN DELETE QUIZ ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error object:', error);
+    
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message 
+    });
   }
 };
 
@@ -275,7 +334,7 @@ exports.deleteQuiz = async (req, res) => {
 // @access  Private/Student
 exports.submitQuiz = async (req, res) => {
   try {
-    const { answers } = req.body;
+    const { answers, startTime } = req.body;
     
     if (!Array.isArray(answers)) {
       return res.status(400).json({ message: 'Answers must be an array' });
@@ -316,6 +375,13 @@ exports.submitQuiz = async (req, res) => {
       return res.status(400).json({ message: 'You have already submitted this quiz' });
     }
     
+    // Calculate time taken if start time is provided
+    let timeTaken = null;
+    if (startTime) {
+      const startDate = new Date(startTime);
+      timeTaken = Math.round((now - startDate) / 1000); // Time in seconds
+    }
+    
     // Calculate score
     let score = 0;
     let totalPossibleScore = 0;
@@ -331,17 +397,55 @@ exports.submitQuiz = async (req, res) => {
       }
       
       totalPossibleScore += question.points;
-      const selectedOption = question.options.id(answer.selectedOption);
+      let isCorrect = false;
       
-      if (selectedOption && selectedOption.isCorrect) {
-        score += question.points;
+      if (question.type === 'text') {
+        // Handle text answer
+        const studentAnswer = answer.textAnswer?.trim().toLowerCase();
+        if (studentAnswer && question.correctTextAnswers && question.correctTextAnswers.length > 0) {
+          isCorrect = question.correctTextAnswers.some(
+            correctAnswer => correctAnswer.trim().toLowerCase() === studentAnswer
+          );
+        }
+        
+        processedAnswers.push({
+          question: answer.question,
+          textAnswer: answer.textAnswer,
+          isCorrect
+        });
+      } else {
+        // Handle multiple choice questions
+        if (question.type === 'multiple') {
+          // For multiple choice, check if all selected options are correct and all correct options are selected
+          const selectedOptions = answer.selectedOptions || [];
+          const correctOptions = question.options.filter(opt => opt.isCorrect);
+          
+          const allSelectedAreCorrect = selectedOptions.every(selectedId => {
+            const option = question.options.id(selectedId);
+            return option && option.isCorrect;
+          });
+          
+          const allCorrectAreSelected = correctOptions.every(correctOpt => 
+            selectedOptions.includes(correctOpt._id.toString())
+          );
+          
+          isCorrect = allSelectedAreCorrect && allCorrectAreSelected && selectedOptions.length === correctOptions.length;
+        } else {
+          // For single choice
+          const selectedOption = question.options.id(answer.selectedOption);
+          isCorrect = selectedOption && selectedOption.isCorrect;
       }
       
       processedAnswers.push({
         question: answer.question,
-        selectedOption: answer.selectedOption,
-        isCorrect: selectedOption && selectedOption.isCorrect
+          selectedOptions: answer.selectedOptions || [answer.selectedOption],
+          isCorrect
       });
+      }
+      
+      if (isCorrect) {
+        score += question.points;
+      }
     }
     
     // Create result
@@ -350,7 +454,8 @@ exports.submitQuiz = async (req, res) => {
       answers: processedAnswers,
       score,
       totalPossibleScore,
-      submittedAt: now
+      submittedAt: now,
+      timeTaken
     };
     
     // Add result to quiz
@@ -393,15 +498,32 @@ exports.getQuizResult = async (req, res) => {
       ...result.toObject(),
       answers: result.answers.map(answer => {
         const question = quiz.questions.id(answer.question);
-        const selectedOption = question?.options.id(answer.selectedOption);
+        
+        if (question.type === 'text') {
+          return {
+            ...answer,
+            questionText: question?.questionText,
+            textAnswer: answer.textAnswer,
+            correctTextAnswers: question?.correctTextAnswers,
+            explanation: question?.explanation,
+          };
+        } else {
+          const selectedOptions = answer.selectedOptions || [];
+          const selectedOptionTexts = selectedOptions.map(optionId => {
+            const option = question?.options.id(optionId);
+            return option?.text;
+          }).filter(Boolean);
+          
+          const correctOptions = question?.options.filter(o => o.isCorrect) || [];
         
         return {
           ...answer,
           questionText: question?.questionText,
-          selectedOptionText: selectedOption?.text,
+            selectedOptionTexts,
+            correctOptionTexts: correctOptions.map(o => o.text),
           explanation: question?.explanation,
-          correctOption: question?.options.find(o => o.isCorrect)
         };
+        }
       })
     };
     
@@ -433,6 +555,23 @@ exports.getCourseQuizzes = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Test endpoint
+// @route   GET /api/quizzes/test
+// @access  Public
+exports.testEndpoint = async (req, res) => {
+  try {
+    console.log('Test endpoint called');
+    res.json({
+      success: true,
+      message: 'Quiz controller is working',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test endpoint error:', error);
+    res.status(500).json({ message: 'Test endpoint error' });
   }
 };
     

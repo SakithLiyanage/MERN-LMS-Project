@@ -6,7 +6,8 @@ import moment from 'moment';
 import AuthContext from '../../context/AuthContext';
 import {
   ClipboardCheckIcon,  // Changed from ClipboardDocumentCheckIcon
-  SearchIcon  // Changed from MagnifyingGlassIcon
+  SearchIcon,  // Changed from MagnifyingGlassIcon
+  TrashIcon
 } from '@heroicons/react/outline';
 
 const Assignments = () => {
@@ -162,6 +163,16 @@ const Assignments = () => {
     }
   };
   
+  const handleDeleteAssignment = async (assignmentId) => {
+    if (!window.confirm('Are you sure you want to delete this assignment? This action cannot be undone.')) return;
+    try {
+      await axios.delete(`/api/assignments/${assignmentId}`);
+      setAssignments(prev => prev.filter(a => a._id !== assignmentId));
+    } catch (err) {
+      alert('Failed to delete assignment.');
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -273,6 +284,15 @@ const Assignments = () => {
                     </Link>
                   </div>
                 </div>
+                {isTeacher && (
+                  <button
+                    onClick={() => handleDeleteAssignment(assignment._id)}
+                    className="ml-2 p-2 rounded-full hover:bg-red-100 text-red-600"
+                    title="Delete Assignment"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                )}
               </motion.div>
             );
           })

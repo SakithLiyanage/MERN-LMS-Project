@@ -14,6 +14,31 @@ import {
   DocumentIcon // Added missing import
 } from '@heroicons/react/outline';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+const handleDownload = async (fileName, originalName) => {
+  const token = localStorage.getItem('token');
+  try {
+    const response = await axios.get(
+      `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileName)}`,
+      {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', originalName || fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    alert('Download failed: ' + (error.response?.data?.message || error.message));
+  }
+};
+
 const SubmitAssignment = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -193,14 +218,12 @@ const SubmitAssignment = () => {
               {assignment.attachments.map((attachment, index) => (
                 <div key={index} className="flex items-center">
                   <DocumentIcon className="h-5 w-5 text-gray-500 mr-2" />
-                  <a
-                    href={`/uploads/${attachment}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => handleDownload(attachment, attachment)}
                     className="text-primary-600 hover:underline"
                   >
-                    {attachment.split('/').pop()}
-                  </a>
+                    Download {attachment}
+                  </button>
                 </div>
               ))}
             </div>

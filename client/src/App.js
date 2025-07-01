@@ -100,6 +100,7 @@ const App = () => {
             <Route path="/quizzes" element={<Layout><Quizzes /></Layout>} />
             <Route path="/quizzes/:id" element={<Layout><QuizDetails /></Layout>} />
             <Route path="/quizzes/:id/edit" element={<Layout><EditQuiz /></Layout>} />
+            <Route path="/quizzes/:id/result" element={<Layout><QuizResult /></Layout>} />
             <Route 
               path="/quizzes/:id/take" 
               element={
@@ -107,14 +108,6 @@ const App = () => {
                   <StudentRoute>
                     <TakeQuiz />
                   </StudentRoute>
-                </PrivateRoute>
-              } 
-            />
-            <Route 
-              path="/quizzes/:quizId/results/:resultId" 
-              element={
-                <PrivateRoute>
-                  <QuizResult />
                 </PrivateRoute>
               } 
             />

@@ -23,16 +23,19 @@ exports.protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
       
-      // Simplified approach - just set user ID without database query
-      req.user = { id: decoded.id };
-      
-      // Optionally fetch user info if needed
-      if (req.originalUrl.includes('/me') || req.method !== 'GET') {
-        const user = await User.findById(decoded.id);
-        if (user) {
-          req.user.role = user.role;
-        }
+      // Fetch user info to get role
+      const user = await User.findById(decoded.id);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not found'
+        });
       }
+      
+      req.user = { 
+        id: decoded.id,
+        role: user.role
+      };
       
       next();
     } catch (err) {
@@ -54,10 +57,6 @@ exports.protect = async (req, res, next) => {
 // Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    // For simplicity during debugging, skip role checks
-    return next();
-    
-    /* Commented out for debugging
     if (!req.user || !req.user.role) {
       return res.status(403).json({
         success: false, 
@@ -73,7 +72,6 @@ exports.authorize = (...roles) => {
     }
     
     next();
-    */
   };
 };
 

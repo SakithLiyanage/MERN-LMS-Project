@@ -13,6 +13,8 @@ import {
   DocumentTextIcon
 } from '@heroicons/react/outline';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
 const AssignmentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -115,6 +117,29 @@ const AssignmentDetails = () => {
     }
   };
   
+  const handleDownload = async (fileName, originalName) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(
+        `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileName)}`,
+        {
+          responseType: 'blob',
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', originalName || fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Download failed: ' + (error.response?.data?.message || error.message));
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -199,14 +224,12 @@ const AssignmentDetails = () => {
                   <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
                   <span className="text-gray-900">{attachment.fileName}</span>
                 </div>
-                <a
-                  href={`/uploads/${attachment.fileUrl}`}
-                  download={attachment.fileName}
+                <button
+                  onClick={() => handleDownload(attachment.fileUrl, attachment.originalName)}
                   className="inline-flex items-center px-3 py-1 bg-primary-600 text-white rounded-md hover:bg-primary-700"
                 >
-                  <DocumentDownloadIcon className="h-4 w-4 mr-1" />
-                  Download
-                </a>
+                  Download {attachment.originalName || attachment.fileUrl}
+                </button>
               </li>
             ))}
           </ul>
@@ -223,14 +246,12 @@ const AssignmentDetails = () => {
               <div className="flex items-start">
                 <DocumentTextIcon className="h-5 w-5 text-gray-500 mr-2" />
                 <div>
-                  <a
-                    href={`/uploads/${studentSubmission.file}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => handleDownload(studentSubmission.file, '')}
                     className="text-primary-600 hover:underline"
                   >
                     {studentSubmission.file.split('/').pop()}
-                  </a>
+                  </button>
                   <p className="text-xs text-gray-500 mt-1">
                     Submitted: {moment(studentSubmission.submittedAt).format('MMM D, YYYY [at] h:mm A')}
                   </p>
@@ -334,14 +355,12 @@ const AssignmentDetails = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <a
-                          href={`/uploads/${submission.file}`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={() => handleDownload(submission.file, '')}
                           className="text-primary-600 hover:underline text-sm"
                         >
                           View Submission
-                        </a>
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {moment(submission.submittedAt).format('MMM D, YYYY [at] h:mm A')}

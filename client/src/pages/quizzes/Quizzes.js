@@ -2,13 +2,15 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import moment from 'moment';
 import AuthContext from '../../context/AuthContext';
 import {
   AcademicCapIcon,
   ClockIcon,
   SearchIcon,
-  DocumentTextIcon // Added missing import
+  DocumentTextIcon,
+  TrashIcon
 } from '@heroicons/react/outline';
 
 const Quizzes = () => {
@@ -136,6 +138,26 @@ const Quizzes = () => {
           color: 'bg-green-100 text-green-800'
         };
       }
+    }
+  };
+  
+  const handleDeleteQuiz = async (quizId) => {
+    if (!window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) return;
+    
+    try {
+      const response = await axios.delete(`/api/quizzes/${quizId}`);
+      
+      if (response.data.success) {
+        toast.success('Quiz deleted successfully!');
+        setQuizzes(prev => prev.filter(q => q._id !== quizId));
+        setFilteredQuizzes(prev => prev.filter(q => q._id !== quizId));
+      } else {
+        toast.error('Failed to delete quiz');
+      }
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete quiz';
+      toast.error(errorMessage);
     }
   };
   
@@ -279,6 +301,15 @@ const Quizzes = () => {
                       </span>
                     )}
                   </div>
+                  {isTeacher && (
+                    <button
+                      onClick={() => handleDeleteQuiz(quiz._id)}
+                      className="ml-2 p-2 rounded-full hover:bg-red-100 text-red-600"
+                      title="Delete Quiz"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );

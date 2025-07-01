@@ -9,9 +9,13 @@ const {
   deleteQuiz,
   submitQuiz,
   getQuizResult,
-  getCourseQuizzes
+  getCourseQuizzes,
+  testEndpoint
 } = require('../controllers/quiz.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
+
+// Test endpoint (for debugging)
+router.get('/test', testEndpoint);
 
 // Course specific routes (must be before /:id routes to avoid conflicts)
 router.get('/course/:courseId', protect, getCourseQuizzes);

@@ -8,8 +8,11 @@ import {
   BellIcon, 
   ExclamationIcon, // Changed from ExclamationTriangleIcon
   DocumentTextIcon,
-  PlusIcon
+  PlusIcon,
+  TrashIcon
 } from '@heroicons/react/outline';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
 const Notices = () => {
   const { user } = useContext(AuthContext);
@@ -69,6 +72,39 @@ const Notices = () => {
           icon: <BellIcon className="h-5 w-5 text-blue-500" />,
           badge: 'bg-blue-100 text-blue-800'
         };
+    }
+  };
+  
+  const handleDeleteNotice = async (noticeId) => {
+    if (!window.confirm('Are you sure you want to delete this notice? This action cannot be undone.')) return;
+    try {
+      await axios.delete(`/api/notices/${noticeId}`);
+      setNotices(prev => prev.filter(n => n._id !== noticeId));
+    } catch (err) {
+      alert('Failed to delete notice.');
+    }
+  };
+  
+  const handleDownload = async (fileName, originalName) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(
+        `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileName)}`,
+        {
+          responseType: 'blob',
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', originalName || fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Download failed: ' + (error.response?.data?.message || error.message));
     }
   };
   
@@ -184,17 +220,13 @@ const Notices = () => {
                           <p className="text-sm font-medium text-gray-700">Attachments:</p>
                           <div className="mt-1 flex flex-wrap gap-2">
                             {notice.attachments.map((attachment, idx) => (
-                              <a
+                              <button
                                 key={idx}
-                                href={`/uploads/${attachment}`}
-                                target="_blank"
-                                rel="noreferrer"
+                                onClick={() => handleDownload(attachment, attachment)}
                                 className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 border border-gray-200 rounded hover:bg-gray-200 text-gray-700"
                               >
-                                <DocumentTextIcon className="h-3 w-3 mr-1" />
-                                {attachment.split('/').pop().substring(0, 15)}
-                                {attachment.split('/').pop().length > 15 ? '...' : ''}
-                              </a>
+                                Download {attachment}
+                              </button>
                             ))}
                           </div>
                         </div>
@@ -210,11 +242,7 @@ const Notices = () => {
                     <div className="mt-4 sm:mt-0 sm:ml-6">
                       <button 
                         className="text-red-600 hover:text-red-800 text-sm font-medium"
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this notice?')) {
-                            // Delete notice API call would go here
-                          }
-                        }}
+                        onClick={() => handleDeleteNotice(notice._id)}
                       >
                         Delete
                       </button>

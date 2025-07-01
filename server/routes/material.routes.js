@@ -9,7 +9,8 @@ const {
   getMaterial,
   createMaterial,
   updateMaterial,
-  deleteMaterial
+  deleteMaterial,
+  downloadMaterial
 } = require('../controllers/material.controller');
 
 const { protect, authorize } = require('../middleware/auth.middleware');
@@ -27,9 +28,7 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    // Create unique filename with original extension
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    cb(null, `${uniqueSuffix}-${file.originalname}`);
+    cb(null, file.originalname);
   }
 });
 
@@ -81,5 +80,7 @@ router.post(
 
 router.put('/:id', protect, authorize('teacher', 'admin'), updateMaterial);
 router.delete('/:id', protect, authorize('teacher', 'admin'), deleteMaterial);
+
+router.get('/download/:fileName', protect, downloadMaterial);
 
 module.exports = router;

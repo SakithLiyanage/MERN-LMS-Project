@@ -61,10 +61,10 @@ const Register = () => {
       role,
     };
     try {
-      const success = await register(userData);
-      if (success) {
+    const success = await register(userData);
+    if (success) {
         toast.success('Registration successful!');
-        // Navigation will happen in useEffect
+      // Navigation will happen in useEffect
       } else {
         toast.error('Registration failed.');
       }

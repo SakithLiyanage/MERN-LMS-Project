@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/outline';
 
 const QuizResult = () => {
-  const { quizId, resultId } = useParams();
+  const { id: quizId } = useParams();
   const [result, setResult] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,8 +25,14 @@ const QuizResult = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {
-          setQuiz(res.data.result.quiz || {});
           setResult(res.data.result);
+          // Fetch quiz details separately if needed
+          const quizRes = await axios.get(`/api/quizzes/${quizId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (quizRes.data.success) {
+            setQuiz(quizRes.data.data);
+          }
         } else {
           toast.error('Failed to load quiz results');
         }
@@ -42,9 +48,91 @@ const QuizResult = () => {
 
   // Function to download quiz results as PDF
   const downloadResults = () => {
-    toast.info('Downloading quiz results...');
-    // Implement PDF generation and download
-    // This would typically use a library like jsPDF or call a server endpoint
+    // Create a text-based report that can be downloaded
+    const report = generateQuizReport();
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${quiz?.title || 'Quiz'}_Results_${moment().format('YYYY-MM-DD_HH-mm')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    toast.success('Results downloaded successfully!');
+  };
+
+  // Function to generate quiz report
+  const generateQuizReport = () => {
+    const correctAnswers = result.answers?.filter(a => a.isCorrect).length || 0;
+    const totalQuestions = result.answers?.length || 0;
+    const percentage = result.totalPossibleScore ? Math.round((result.score / result.totalPossibleScore) * 100) : 0;
+    const isPassed = percentage >= 70;
+    
+    // Format time taken
+    const formatTime = (seconds) => {
+      if (!seconds) return 'Not recorded';
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${secs}s`;
+      } else {
+        return `${secs}s`;
+      }
+    };
+
+    let report = `QUIZ RESULTS REPORT\n`;
+    report += `==================\n\n`;
+    report += `Quiz Title: ${quiz?.title || 'Unknown Quiz'}\n`;
+    report += `Completed: ${moment(result.submittedAt).format('MMMM D, YYYY [at] h:mm A')}\n`;
+    report += `Time Taken: ${formatTime(result.timeTaken)}\n`;
+    report += `Score: ${result.score}/${result.totalPossibleScore} (${percentage}%)\n`;
+    report += `Status: ${isPassed ? 'PASSED' : 'FAILED'}\n`;
+    report += `Correct Answers: ${correctAnswers}/${totalQuestions}\n\n`;
+    
+    report += `QUESTION REVIEW\n`;
+    report += `===============\n\n`;
+    
+    result.answers?.forEach((answer, idx) => {
+      const questionNum = idx + 1;
+      report += `Question ${questionNum}:\n`;
+      report += `Question: ${answer.questionText}\n`;
+      report += `Your Answer: `;
+      
+      if (answer.textAnswer) {
+        report += answer.textAnswer;
+      } else if (answer.selectedOptionTexts && answer.selectedOptionTexts.length > 0) {
+        report += answer.selectedOptionTexts.join(', ');
+      } else {
+        report += 'No answer provided';
+      }
+      
+      report += `\nResult: ${answer.isCorrect ? 'CORRECT' : 'INCORRECT'}\n`;
+      
+      if (!answer.isCorrect) {
+        report += `Correct Answer: `;
+        if (answer.correctTextAnswers && answer.correctTextAnswers.length > 0) {
+          report += answer.correctTextAnswers.join(', ');
+        } else if (answer.correctOptionTexts && answer.correctOptionTexts.length > 0) {
+          report += answer.correctOptionTexts.join(', ');
+        } else {
+          report += 'Not available';
+        }
+        report += `\n`;
+      }
+      
+      if (answer.explanation) {
+        report += `Explanation: ${answer.explanation}\n`;
+      }
+      
+      report += `\n`;
+    });
+    
+    return report;
   };
 
   if (loading) {
@@ -82,9 +170,25 @@ const QuizResult = () => {
 
   // Calculate correct answers and percentage
   const correctAnswers = result.answers?.filter(a => a.isCorrect).length || 0;
-  const totalQuestions = quiz.questions?.length || 0;
+  const totalQuestions = result.answers?.length || 0;
   const percentage = result.totalPossibleScore ? Math.round((result.score / result.totalPossibleScore) * 100) : 0;
-  const isPassed = percentage >= (quiz.passScore || 70);
+  const isPassed = percentage >= 70; // Default passing score
+
+  // Format time taken
+  const formatTime = (seconds) => {
+    if (!seconds) return 'Not recorded';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto p-4">
@@ -92,7 +196,7 @@ const QuizResult = () => {
         {/* Header */}
         <div className={`p-6 text-white ${isPassed ? 'bg-green-600' : 'bg-red-600'}`}>
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">{quiz.title} - Results</h1>
+            <h1 className="text-xl font-semibold">{quiz?.title || 'Quiz'} - Results</h1>
             <div className="flex items-center">
               {isPassed ? (
                 <CheckCircleIcon className="w-8 h-8 mr-2" />
@@ -109,7 +213,7 @@ const QuizResult = () => {
           </div>
           
           <div className="mt-4 text-sm opacity-80">
-            Completed: {moment(result.completedAt).format('MMMM D, YYYY [at] h:mm A')}
+            Completed: {moment(result.submittedAt).format('MMMM D, YYYY [at] h:mm A')}
           </div>
         </div>
         
@@ -127,12 +231,12 @@ const QuizResult = () => {
             </div>
             
             <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{quiz.passScore || 70}%</div>
+              <div className="text-lg font-semibold">70%</div>
               <div className="text-xs text-gray-500">Passing Score</div>
             </div>
             
             <div className="bg-gray-50 p-3 rounded-lg text-center">
-              <div className="text-lg font-semibold">{Math.floor(result.timeTaken / 60)}:{(result.timeTaken % 60).toString().padStart(2, '0')}</div>
+              <div className="text-lg font-semibold">{formatTime(result.timeTaken)}</div>
               <div className="text-xs text-gray-500">Time Taken</div>
             </div>
           </div>
@@ -140,13 +244,12 @@ const QuizResult = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Question Review</h2>
           
           <div className="space-y-6">
-            {quiz.questions?.map((question, idx) => {
-              const userAnswer = result.answers.find(a => a.questionId === question._id);
-              const isCorrect = userAnswer?.isCorrect;
+            {result.answers?.map((answer, idx) => {
+              const isCorrect = answer.isCorrect;
               
               return (
                 <div
-                  key={question._id || idx}
+                  key={answer.question || idx}
                   className={`p-4 rounded-lg border ${
                     isCorrect
                       ? 'bg-green-50 border-green-200'
@@ -161,25 +264,25 @@ const QuizResult = () => {
                         <XCircleIcon className="h-5 w-5 text-red-500" />
                       )}
                     </div>
-                    <div className="ml-3">
+                    <div className="ml-3 flex-1">
                       <h3 className="font-medium">Question {idx + 1}</h3>
-                      <p className="text-gray-800 mt-1">{question.text}</p>
+                      <p className="text-gray-800 mt-1">{answer.questionText}</p>
                       
                       <div className="mt-3">
                         <p className="text-sm font-medium text-gray-500">Your Answer:</p>
                         <div className="mt-1 text-sm">
-                          {question.type === 'multiple' ? (
+                          {answer.textAnswer ? (
+                            <p className="italic bg-gray-100 p-2 rounded">{answer.textAnswer}</p>
+                          ) : answer.selectedOptionTexts ? (
                             <ul className="list-disc pl-5 space-y-1">
-                              {userAnswer?.answer.map(answerIdx => (
-                                <li key={answerIdx}>
-                                  {question.options[answerIdx]}
+                              {answer.selectedOptionTexts.map((text, i) => (
+                                <li key={i} className="bg-gray-100 p-1 rounded">
+                                  {text}
                                 </li>
                               ))}
                             </ul>
-                          ) : question.type === 'single' ? (
-                            <p>{question.options[userAnswer?.answer]}</p>
                           ) : (
-                            <p className="italic">{userAnswer?.answer}</p>
+                            <p className="text-gray-400 italic">No answer provided</p>
                           )}
                         </div>
                       </div>
@@ -188,27 +291,33 @@ const QuizResult = () => {
                         <div className="mt-3 bg-white p-2 rounded border border-gray-200">
                           <p className="text-sm font-medium text-gray-500">Correct Answer:</p>
                           <div className="mt-1 text-sm">
-                            {question.type === 'multiple' ? (
+                            {answer.correctTextAnswers ? (
                               <ul className="list-disc pl-5 space-y-1">
-                                {question.correctAnswer.map(answerIdx => (
-                                  <li key={answerIdx}>
-                                    {question.options[answerIdx]}
+                                {answer.correctTextAnswers.map((text, i) => (
+                                  <li key={i} className="text-green-700 font-medium">
+                                    {text}
                                   </li>
                                 ))}
                               </ul>
-                            ) : question.type === 'single' ? (
-                              <p>{question.options[question.correctAnswer]}</p>
+                            ) : answer.correctOptionTexts ? (
+                              <ul className="list-disc pl-5 space-y-1">
+                                {answer.correctOptionTexts.map((text, i) => (
+                                  <li key={i} className="text-green-700 font-medium">
+                                    {text}
+                                  </li>
+                                ))}
+                              </ul>
                             ) : (
-                              <p className="italic">{question.correctAnswer}</p>
+                              <p className="text-gray-400 italic">Correct answer not available</p>
                             )}
                           </div>
                         </div>
                       )}
                       
-                      {question.explanation && (
-                        <div className="mt-3 bg-white p-2 rounded border border-gray-200">
-                          <p className="text-sm font-medium text-gray-500">Explanation:</p>
-                          <p className="mt-1 text-sm">{question.explanation}</p>
+                      {answer.explanation && (
+                        <div className="mt-3 bg-blue-50 p-2 rounded border border-blue-200">
+                          <p className="text-sm font-medium text-blue-700">Explanation:</p>
+                          <p className="mt-1 text-sm text-blue-800">{answer.explanation}</p>
                         </div>
                       )}
                     </div>
@@ -222,7 +331,7 @@ const QuizResult = () => {
         {/* Actions */}
         <div className="px-6 py-4 bg-gray-50 flex justify-between items-center">
           <Link
-            to={`/courses/${quiz.course}`}
+            to={`/courses/${quiz?.course || '#'}`}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
             <ArrowLeftIcon className="mr-2 h-4 w-4" />

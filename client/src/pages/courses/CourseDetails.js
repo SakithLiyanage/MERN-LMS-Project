@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { Tab } from '@headlessui/react';
 import moment from 'moment';
 import AuthContext from '../../context/AuthContext';
@@ -15,6 +16,8 @@ import {
   BookOpenIcon,
   AcademicCapIcon
 } from '@heroicons/react/outline';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -77,10 +80,18 @@ const CourseDetails = () => {
   const handleDeleteQuiz = async (quizId) => {
     if (window.confirm('Are you sure you want to delete this quiz?')) {
       try {
-        await axios.delete(`/api/quizzes/${quizId}`);
-        setQuizzes(quizzes.filter((quiz) => quiz._id !== quizId));
-      } catch (err) {
-        console.error(err);
+        const response = await axios.delete(`/api/quizzes/${quizId}`);
+        
+        if (response.data.success) {
+          toast.success('Quiz deleted successfully!');
+          setQuizzes(quizzes.filter((quiz) => quiz._id !== quizId));
+        } else {
+          toast.error('Failed to delete quiz');
+        }
+      } catch (error) {
+        console.error('Error deleting quiz:', error);
+        const errorMessage = error.response?.data?.message || 'Failed to delete quiz';
+        toast.error(errorMessage);
       }
     }
   };
@@ -93,6 +104,29 @@ const CourseDetails = () => {
       } catch (err) {
         console.error(err);
       }
+    }
+  };
+
+  const handleDownload = async (fileName, originalName) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(
+        `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileName)}`,
+        {
+          responseType: 'blob',
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', originalName || fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Download failed: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -280,25 +314,12 @@ const CourseDetails = () => {
                           </p>
                         </div>
                         <div className="flex">
-                          {material.type === 'document' || material.type === 'image' ? (
-                            <a
-                              href={`/uploads/materials/${material.fileName}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-3 py-1 text-xs rounded-md text-white bg-primary-600 hover:bg-primary-700"
-                            >
-                              Download
-                            </a>
-                          ) : material.type === 'link' ? (
-                            <a
-                              href={material.link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-3 py-1 text-xs rounded-md text-white bg-primary-600 hover:bg-primary-700"
-                            >
-                              Open Link
-                            </a>
-                          ) : null}
+                          <button
+                            onClick={() => handleDownload(material.fileName, material.originalName)}
+                            className="px-3 py-1 text-xs rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                          >
+                            Download {material.originalName || material.fileName}
+                          </button>
 
                           {isCourseTeacher && (
                             <button

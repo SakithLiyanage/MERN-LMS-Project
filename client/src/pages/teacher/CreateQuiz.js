@@ -56,6 +56,31 @@ const CreateQuiz = () => {
   const handleQuestionChange = (index, field, value) => {
     const updatedQuestions = [...questions];
     updatedQuestions[index][field] = value;
+    
+    // If question type is changed, update the structure accordingly
+    if (field === 'type') {
+      if (value === 'text') {
+        // For text questions, remove options and add correctTextAnswers
+        updatedQuestions[index] = {
+          ...updatedQuestions[index],
+          options: [],
+          correctTextAnswers: [''] // Initialize with one empty answer
+        };
+      } else {
+        // For choice questions, add options and remove correctTextAnswers
+        updatedQuestions[index] = {
+          ...updatedQuestions[index],
+          options: [
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false }
+          ],
+          correctTextAnswers: []
+        };
+      }
+    }
+    
     setQuestions(updatedQuestions);
   };
   
@@ -67,10 +92,16 @@ const CreateQuiz = () => {
   
   const handleCorrectOptionChange = (questionIndex, optionIndex) => {
     const updatedQuestions = [...questions];
-    const isCorrect = !updatedQuestions[questionIndex].options[optionIndex].isCorrect;
-    updatedQuestions[questionIndex].options.forEach((option, index) => {
-      option.isCorrect = index === optionIndex ? isCorrect : false;
-    });
+    const question = updatedQuestions[questionIndex];
+    if (question.type === 'multiple') {
+      // Toggle independently
+      question.options[optionIndex].isCorrect = !question.options[optionIndex].isCorrect;
+    } else {
+      // Only one correct
+      question.options.forEach((option, idx) => {
+        option.isCorrect = idx === optionIndex ? !option.isCorrect : false;
+      });
+    }
     setQuestions(updatedQuestions);
   };
   
@@ -81,12 +112,14 @@ const CreateQuiz = () => {
         questionText: '',
         points: 1,
         explanation: '',
+        type: 'single',
         options: [
           { text: '', isCorrect: false },
           { text: '', isCorrect: false },
           { text: '', isCorrect: false },
           { text: '', isCorrect: false }
-        ]
+        ],
+        correctTextAnswers: [],
       }
     ]);
   };
@@ -136,18 +169,28 @@ const CreateQuiz = () => {
         return false;
       }
       
-      // Check if at least one option is marked as correct
-      const hasCorrectOption = question.options.some(option => option.isCorrect);
-      if (!hasCorrectOption) {
-        toast.error(`Question ${i + 1} must have at least one correct answer`);
-        return false;
-      }
-      
-      // Check if all options have text
-      for (let j = 0; j < question.options.length; j++) {
-        if (!question.options[j].text.trim()) {
-          toast.error(`Option ${j + 1} in Question ${i + 1} is empty`);
+      if (question.type === 'text') {
+        // Validate text questions
+        if (!question.correctTextAnswers || question.correctTextAnswers.length === 0 || 
+            question.correctTextAnswers.some(ans => !ans.trim())) {
+          toast.error(`Question ${i + 1} must have at least one correct text answer`);
           return false;
+        }
+      } else {
+        // Validate choice questions
+        // Check if at least one option is marked as correct
+        const hasCorrectOption = question.options.some(option => option.isCorrect);
+        if (!hasCorrectOption) {
+          toast.error(`Question ${i + 1} must have at least one correct answer`);
+          return false;
+        }
+        
+        // Check if all options have text
+        for (let j = 0; j < question.options.length; j++) {
+          if (!question.options[j].text.trim()) {
+            toast.error(`Option ${j + 1} in Question ${i + 1} is empty`);
+            return false;
+          }
         }
       }
     }
@@ -165,11 +208,34 @@ const CreateQuiz = () => {
     setSubmitting(true);
     
     try {
+      // Prepare questions data - filter out options for text questions
+      const preparedQuestions = questions.map(question => {
+        if (question.type === 'text') {
+          return {
+            questionText: question.questionText,
+            type: question.type,
+            points: question.points,
+            explanation: question.explanation,
+            correctTextAnswers: question.correctTextAnswers || []
+          };
+        } else {
+          return {
+            questionText: question.questionText,
+            type: question.type,
+            points: question.points,
+            explanation: question.explanation,
+            options: question.options
+          };
+        }
+      });
+      
       const quizData = {
         ...formData,
         course: courseId,
-        questions,
+        questions: preparedQuestions,
       };
+      
+      console.log('Submitting quiz data:', JSON.stringify(quizData, null, 2));
       
       const res = await axios.post('/api/quizzes', quizData);
       
@@ -177,7 +243,11 @@ const CreateQuiz = () => {
       navigate(`/quizzes/${res.data.quiz._id}`);
     } catch (error) {
       console.error('Error creating quiz:', error);
-      toast.error(error.response?.data?.message || 'Error creating quiz');
+      if (error.response?.data?.errors) {
+        error.response.data.errors.forEach(err => toast.error(err));
+      } else {
+        toast.error(error.response?.data?.message || 'Error creating quiz');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -381,65 +451,77 @@ const CreateQuiz = () => {
                     />
                   </div>
                   
-                  {/* Answer Options */}
+                  {/* Question Type */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Answer Options
-                    </label>
-                    
-                    <div className="space-y-3">
-                      {question.options.map((option, oIndex) => (
-                        <div key={oIndex} className="flex items-center">
-                          <button
-                            type="button"
-                            onClick={() => handleCorrectOptionChange(qIndex, oIndex)}
-                            className={`flex-shrink-0 mr-2 ${
-                              option.isCorrect
-                                ? 'text-green-600 hover:text-green-700'
-                                : 'text-gray-400 hover:text-gray-500'
-                            }`}
-                          >
-                            {option.isCorrect ? (
-                              <CheckCircleIcon className="h-5 w-5" />
-                            ) : (
-                              <XCircleIcon className="h-5 w-5" />
-                            )}
-                          </button>
-                          
-                          <input
-                            type="text"
-                            value={option.text}
-                            onChange={(e) => handleOptionChange(qIndex, oIndex, 'text', e.target.value)}
-                            className={`flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                              option.isCorrect
-                                ? 'border-green-300 bg-green-50'
-                                : 'border-gray-300'
-                            }`}
-                            placeholder={`Option ${oIndex + 1}`}
-                            required
-                          />
-                          
-                          <button
-                            type="button"
-                            onClick={() => removeOption(qIndex, oIndex)}
-                            className="flex-shrink-0 ml-2 text-red-500 hover:text-red-700"
-                            disabled={question.options.length <= 2}
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <button
-                      type="button"
-                      onClick={() => addOption(qIndex)}
-                      className="mt-3 inline-flex items-center px-2 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Question Type*</label>
+                    <select
+                      value={question.type || 'single'}
+                      onChange={e => handleQuestionChange(qIndex, 'type', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     >
-                      <PlusCircleIcon className="h-4 w-4 mr-1" />
-                      Add Option
-                    </button>
+                      <option value="single">Single Choice (Radio)</option>
+                      <option value="multiple">Multiple Choice (Checkboxes)</option>
+                      <option value="text">Text Answer</option>
+                    </select>
                   </div>
+                  
+                  {/* Answer Options */}
+                  {question.type !== 'text' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Answer Options
+                      </label>
+                      <div className="space-y-3">
+                        {question.options.map((option, oIndex) => (
+                          <div key={oIndex} className="flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => handleCorrectOptionChange(qIndex, oIndex)}
+                              className={`flex-shrink-0 mr-2 ${
+                                option.isCorrect
+                                  ? 'text-green-600 hover:text-green-700'
+                                  : 'text-gray-400 hover:text-gray-500'
+                              }`}
+                            >
+                              {option.isCorrect ? (
+                                <CheckCircleIcon className="h-5 w-5" />
+                              ) : (
+                                <XCircleIcon className="h-5 w-5" />
+                              )}
+                            </button>
+                            <input
+                              type="text"
+                              value={option.text}
+                              onChange={e => handleOptionChange(qIndex, oIndex, 'text', e.target.value)}
+                              className={`flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                                option.isCorrect
+                                  ? 'border-green-300 bg-green-50'
+                                  : 'border-gray-300'
+                              }`}
+                              placeholder={`Option ${oIndex + 1}`}
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeOption(qIndex, oIndex)}
+                              className="flex-shrink-0 ml-2 text-red-500 hover:text-red-700"
+                              disabled={question.options.length <= 2}
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => addOption(qIndex)}
+                        className="mt-3 inline-flex items-center px-2 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      >
+                        <PlusCircleIcon className="h-4 w-4 mr-1" />
+                        Add Option
+                      </button>
+                    </div>
+                  )}
                   
                   {/* Explanation */}
                   <div>
@@ -454,6 +536,57 @@ const CreateQuiz = () => {
                       placeholder="Explain why the correct answer is right (shown after quiz submission)"
                     ></textarea>
                   </div>
+                  
+                  {/* Text Answer */}
+                  {question.type === 'text' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Correct Text Answer(s)*
+                      </label>
+                      {question.correctTextAnswers && question.correctTextAnswers.length > 0 && question.correctTextAnswers.map((ans, ansIdx) => (
+                        <div key={ansIdx} className="flex items-center mb-2">
+                          <input
+                            type="text"
+                            value={ans}
+                            onChange={e => {
+                              const updatedQuestions = [...questions];
+                              updatedQuestions[qIndex].correctTextAnswers[ansIdx] = e.target.value;
+                              setQuestions(updatedQuestions);
+                            }}
+                            className="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                            placeholder={`Correct Answer ${ansIdx + 1}`}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedQuestions = [...questions];
+                              updatedQuestions[qIndex].correctTextAnswers.splice(ansIdx, 1);
+                              setQuestions(updatedQuestions);
+                            }}
+                            className="ml-2 text-red-500 hover:text-red-700"
+                            disabled={question.correctTextAnswers.length <= 1}
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedQuestions = [...questions];
+                          if (!updatedQuestions[qIndex].correctTextAnswers) updatedQuestions[qIndex].correctTextAnswers = [''];
+                          else updatedQuestions[qIndex].correctTextAnswers.push('');
+                          setQuestions(updatedQuestions);
+                        }}
+                        className="mt-2 inline-flex items-center px-2 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      >
+                        <PlusCircleIcon className="h-4 w-4 mr-1" />
+                        Add Another Answer
+                      </button>
+                      <p className="text-xs text-gray-500 mt-1">You can add multiple acceptable answers (case-insensitive match).</p>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>

@@ -97,44 +97,44 @@ exports.createNotice = async (req, res) => {
 // @access  Private
 exports.getNotices = async (req, res) => {
   try {
-    // Add logging for debugging
-    console.log('Fetching notices with query:', req.query);
-    
-    let query = {};
-    
-    // If courseId is provided in query params, filter by course
-    if (req.query.courseId) {
-      query.courseId = req.query.courseId;
+    let notices;
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ teacher: req.user.id }).select('_id');
+      const courseIds = teacherCourses.map(course => course._id);
+      if (!courseIds.length) {
+        return res.status(200).json({ success: true, count: 0, notices: [] });
+      }
+      notices = await Notice.find({ course: { $in: courseIds } })
+        .populate('course', 'title code')
+        .sort('-createdAt');
+      if (!notices) {
+        return res.status(200).json({ success: true, count: 0, notices: [] });
+      }
+    } else if (req.user.role === 'student') {
+      const studentCourses = await Course.find({ students: req.user.id }).select('_id');
+      const courseIds = studentCourses.map(course => course._id);
+      notices = await Notice.find({ course: { $in: courseIds } })
+        .populate('course', 'title code')
+        .sort('-createdAt');
+      if (!notices) {
+        return res.status(200).json({ success: true, count: 0, notices: [] });
+      }
+    } else {
+      notices = await Notice.find()
+        .populate('course', 'title code')
+        .sort('-createdAt');
+      if (!notices) {
+        return res.status(200).json({ success: true, count: 0, notices: [] });
+      }
     }
-    
-    // Check if we have courseId in params (for /course/:courseId route)
-    if (req.params.courseId) {
-      query.courseId = req.params.courseId;
-      console.log(`Getting notices for course from params: ${req.params.courseId}`);
-    }
-    
-    console.log('Final query:', query);
-    
-    const notices = await Notice.find(query)
-      .populate({
-        path: 'courseId',
-        select: 'name code' 
-      })
-      .populate({
-        path: 'author',  // Changed from userId to author to match schema
-        select: 'name email role'
-      })
-      .sort('-pinned -createdAt');  // Sort by pinned first, then by creation date
-    
-    console.log(`Found ${notices.length} notices`);
-    
     res.status(200).json({
       success: true,
       count: notices.length,
       notices: notices
     });
   } catch (error) {
-    console.error('Error fetching notices:', error);
+    console.error('Error getting notices:', error);
+    if (error && error.stack) console.error(error.stack);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -174,37 +174,23 @@ exports.getNoticesForCourse = async (req, res) => {
 // @access  Private
 exports.getNotice = async (req, res) => {
   try {
-    const { id } = req.params;
-    
-    console.log(`Fetching notice with id: ${id}`);
-    
-    const notice = await Notice.findById(id)
-      .populate({
-        path: 'courseId',
-        select: 'name code'
-      })
-      .populate({
-        path: 'author',  // Changed from userId to author to match schema
-        select: 'name email role'
-      });
-    
+    const notice = await Notice.findById(req.params.id)
+      .populate('course', 'title code teacher');
     if (!notice) {
-      console.log('Notice not found');
       return res.status(404).json({
         success: false,
         message: 'Notice not found'
       });
     }
-    
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      notice: notice
+      data: notice
     });
   } catch (error) {
-    console.error('Error fetching notice:', error);
-    res.status(500).json({
+    console.error('Error getting notice:', error);
+    return res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Error fetching notice details',
       error: error.message
     });
   }

@@ -39,6 +39,9 @@ const materialSchema = new mongoose.Schema(
     fileSize: {
       type: Number,
     },
+    originalName: {
+      type: String,
+    },
     link: {
       type: String,
     },

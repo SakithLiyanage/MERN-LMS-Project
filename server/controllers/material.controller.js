@@ -70,6 +70,7 @@ exports.createMaterial = async (req, res) => {
     let fileName = '';
     let fileType = '';
     let fileSize = 0;
+    let originalName = '';
     
     // Validate required fields
     if (!title || !courseId) {
@@ -102,6 +103,7 @@ exports.createMaterial = async (req, res) => {
       fileName = req.file.originalname;
       fileType = req.file.mimetype;
       fileSize = req.file.size;
+      originalName = req.file.originalname;
     }
     
     // Create material
@@ -115,6 +117,7 @@ exports.createMaterial = async (req, res) => {
       fileName,
       fileType,
       fileSize,
+      originalName,
       link
     });
     
@@ -231,6 +234,97 @@ exports.deleteMaterial = async (req, res) => {
       message: 'Server error',
       error: error.message
     });
+  }
+};
+
+// Defensive check example for getMaterials and getMaterial
+exports.getMaterials = async (req, res) => {
+  try {
+    let materials;
+    if (req.user.role === 'teacher') {
+      const teacherCourses = await Course.find({ teacher: req.user.id }).select('_id');
+      const courseIds = teacherCourses.map(course => course._id);
+      if (!courseIds.length) {
+        return res.status(200).json({ success: true, count: 0, materials: [] });
+      }
+      materials = await Material.find({ course: { $in: courseIds } })
+        .populate('course', 'title code')
+        .sort('-createdAt');
+      if (!materials) {
+        return res.status(200).json({ success: true, count: 0, materials: [] });
+      }
+    } else if (req.user.role === 'student') {
+      const studentCourses = await Course.find({ students: req.user.id }).select('_id');
+      const courseIds = studentCourses.map(course => course._id);
+      materials = await Material.find({ course: { $in: courseIds } })
+        .populate('course', 'title code')
+        .sort('-createdAt');
+      if (!materials) {
+        return res.status(200).json({ success: true, count: 0, materials: [] });
+      }
+    } else {
+      materials = await Material.find()
+        .populate('course', 'title code')
+        .sort('-createdAt');
+      if (!materials) {
+        return res.status(200).json({ success: true, count: 0, materials: [] });
+      }
+    }
+    res.status(200).json({
+      success: true,
+      count: materials.length,
+      materials: materials
+    });
+  } catch (error) {
+    console.error('Error getting materials:', error);
+    if (error && error.stack) console.error(error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+exports.getMaterial = async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.id)
+      .populate('course', 'title code teacher');
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: 'Material not found'
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: material
+    });
+  } catch (error) {
+    console.error('Error getting material:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching material details',
+      error: error.message
+    });
+  }
+};
+
+// Download material by fileName
+exports.downloadMaterial = async (req, res) => {
+  try {
+    const fileName = req.params.fileName;
+    const filePath = path.join(__dirname, '..', 'uploads', 'materials', fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    // Optionally, set the download name to the original name if you store it
+    res.download(filePath, fileName);
+  } catch (error) {
+    console.error('Error downloading material:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
     

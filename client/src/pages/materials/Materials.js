@@ -10,8 +10,11 @@ import {
   FilmIcon,
   LinkIcon,
   DocumentIcon,
-  SearchIcon // Changed from MagnifyingGlassIcon
+  SearchIcon, // Changed from MagnifyingGlassIcon
+  TrashIcon
 } from '@heroicons/react/outline';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
 const Materials = () => {
   const { user } = useContext(AuthContext);
@@ -92,6 +95,39 @@ const Materials = () => {
         return <LinkIcon className="h-6 w-6 text-purple-500" />;
       default:
         return <DocumentIcon className="h-6 w-6 text-gray-500" />;
+    }
+  };
+  
+  const handleDeleteMaterial = async (materialId) => {
+    if (!window.confirm('Are you sure you want to delete this material? This action cannot be undone.')) return;
+    try {
+      await axios.delete(`/api/materials/${materialId}`);
+      setMaterials(prev => prev.filter(m => m._id !== materialId));
+    } catch (err) {
+      alert('Failed to delete material.');
+    }
+  };
+  
+  const handleDownload = async (fileName, originalName) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(
+        `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileName)}`,
+        {
+          responseType: 'blob',
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', originalName || fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Download failed: ' + (error.response?.data?.message || error.message));
     }
   };
   
@@ -206,27 +242,22 @@ const Materials = () => {
                           <LinkIcon className="h-4 w-4 mr-1" /> Open Link
                         </a>
                       ) : (
-                        material.file && (
-                          <a
-                            href={`/uploads/${material.file}`}
-                            target="_blank"
-                            rel="noreferrer"
+                        material.fileName && (
+                          <button
+                            onClick={() => handleDownload(material.fileName, material.originalName)}
                             className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center"
                           >
-                            <DocumentIcon className="h-4 w-4 mr-1" /> Download File
-                          </a>
+                            <DocumentIcon className="h-4 w-4 mr-1" /> Download {material.originalName || material.fileName}
+                          </button>
                         )
                       )}
                       {isTeacher && (
-                        <button 
-                          className="ml-6 text-red-600 hover:text-red-800 text-sm font-medium"
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this material?')) {
-                              // Delete material API call would go here
-                            }
-                          }}
+                        <button
+                          onClick={() => handleDeleteMaterial(material._id)}
+                          className="ml-2 p-2 rounded-full hover:bg-red-100 text-red-600"
+                          title="Delete Material"
                         >
-                          Delete
+                          <TrashIcon className="h-5 w-5" />
                         </button>
                       )}
                     </div>

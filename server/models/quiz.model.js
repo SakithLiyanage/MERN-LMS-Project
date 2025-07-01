@@ -17,7 +17,44 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  options: [optionSchema],
+  type: {
+    type: String,
+    enum: ['single', 'multiple', 'text'],
+    default: 'single',
+  },
+  options: {
+    type: [optionSchema],
+    required: function() {
+      return this.type !== 'text';
+    },
+    validate: {
+      validator: function(options) {
+        if (this.type !== 'text') {
+          return options && options.length >= 2;
+        }
+        return true;
+      },
+      message: 'Questions must have at least 2 options'
+    }
+  },
+  correctTextAnswers: {
+    type: [{
+      type: String,
+      trim: true,
+    }],
+    required: function() {
+      return this.type === 'text';
+    },
+    validate: {
+      validator: function(answers) {
+        if (this.type === 'text') {
+          return answers && answers.length > 0 && answers.every(ans => ans.trim().length > 0);
+        }
+        return true;
+      },
+      message: 'Text questions must have at least one correct answer'
+    }
+  },
   points: {
     type: Number,
     required: true,
@@ -41,8 +78,12 @@ const studentResultSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
       },
-      selectedOption: {
+      selectedOptions: [{
         type: mongoose.Schema.Types.ObjectId,
+      }],
+      textAnswer: {
+        type: String,
+        trim: true,
       },
       isCorrect: {
         type: Boolean,
@@ -61,6 +102,10 @@ const studentResultSchema = new mongoose.Schema({
   submittedAt: {
     type: Date,
     default: Date.now,
+  },
+  timeTaken: {
+    type: Number, // Time in seconds
+    default: null,
   },
 });
 

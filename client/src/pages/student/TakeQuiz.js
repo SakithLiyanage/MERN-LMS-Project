@@ -13,6 +13,7 @@ const TakeQuiz = () => {
   const [quiz, setQuiz] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
+  const [textAnswers, setTextAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
@@ -83,9 +84,32 @@ const TakeQuiz = () => {
   };
   
   const handleOptionSelect = (questionIndex, optionId) => {
-    setSelectedOptions({
-      ...selectedOptions,
-      [questionIndex]: optionId,
+    const currentQuestionData = quiz.questions[questionIndex];
+    
+    if (currentQuestionData.type === 'multiple') {
+      // For multiple choice, toggle the option
+      const currentSelected = selectedOptions[questionIndex] || [];
+      const newSelected = currentSelected.includes(optionId)
+        ? currentSelected.filter(id => id !== optionId)
+        : [...currentSelected, optionId];
+      
+      setSelectedOptions({
+        ...selectedOptions,
+        [questionIndex]: newSelected,
+      });
+    } else {
+      // For single choice, replace the selection
+      setSelectedOptions({
+        ...selectedOptions,
+        [questionIndex]: optionId,
+      });
+    }
+  };
+  
+  const handleTextAnswerChange = (questionIndex, value) => {
+    setTextAnswers({
+      ...textAnswers,
+      [questionIndex]: value,
     });
   };
   
@@ -106,10 +130,20 @@ const TakeQuiz = () => {
     
     try {
       // Prepare answers array
-      const answers = Object.keys(selectedOptions).map(questionIndex => ({
-        question: quiz.questions[questionIndex]._id,
-        selectedOption: selectedOptions[questionIndex],
-      }));
+      const answers = quiz.questions.map((question, index) => {
+        if (question.type === 'text') {
+          return {
+            question: question._id,
+            textAnswer: textAnswers[index] || '',
+          };
+        } else {
+          return {
+            question: question._id,
+            selectedOption: question.type === 'single' ? selectedOptions[index] : undefined,
+            selectedOptions: question.type === 'multiple' ? (selectedOptions[index] || []) : undefined,
+          };
+        }
+      });
       
       const res = await axios.post(`/api/quizzes/${id}/submit`, { answers });
       
@@ -279,37 +313,67 @@ const TakeQuiz = () => {
             Question {currentQuestion + 1} of {quiz.questions.length}
           </h2>
           <p className="text-gray-700 mb-4">{currentQuestionData.questionText}</p>
-          <p className="text-sm text-gray-500">Points: {currentQuestionData.points}</p>
+          <p className="text-sm text-gray-500 mb-2">Points: {currentQuestionData.points}</p>
+          <p className="text-sm text-gray-500">
+            Type: {currentQuestionData.type === 'single' ? 'Single Choice' : 
+                   currentQuestionData.type === 'multiple' ? 'Multiple Choice' : 'Text Answer'}
+          </p>
         </div>
         
-        {/* Options */}
-        <div className="space-y-3 mb-8">
-          {currentQuestionData.options.map((option) => (
-            <motion.div
-              key={option._id}
-              whileTap={{ scale: 0.98 }}
-              className={`p-3 border rounded-lg cursor-pointer ${
-                selectedOptions[currentQuestion] === option._id
-                  ? 'bg-primary-50 border-primary-300'
-                  : 'bg-white border-gray-200 hover:bg-gray-50'
-              }`}
-              onClick={() => handleOptionSelect(currentQuestion, option._id)}
-            >
-              <div className="flex items-center">
-                <div className={`w-5 h-5 mr-3 rounded-full border ${
-                  selectedOptions[currentQuestion] === option._id
-                    ? 'border-primary-600'
-                    : 'border-gray-300'
-                }`}>
-                  {selectedOptions[currentQuestion] === option._id && (
-                    <div className="w-3 h-3 m-1 rounded-full bg-primary-600"></div>
-                  )}
-                </div>
-                <span className="text-gray-700">{option.text}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {/* Answer Input */}
+        {currentQuestionData.type === 'text' ? (
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Answer
+            </label>
+            <textarea
+              value={textAnswers[currentQuestion] || ''}
+              onChange={(e) => handleTextAnswerChange(currentQuestion, e.target.value)}
+              rows="4"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Type your answer here..."
+            />
+          </div>
+        ) : (
+          <div className="space-y-3 mb-8">
+            {currentQuestionData.options.map((option) => {
+              let isSelected = false;
+              
+              if (currentQuestionData.type === 'single') {
+                isSelected = selectedOptions[currentQuestion] === option._id;
+              } else if (currentQuestionData.type === 'multiple') {
+                const currentSelected = selectedOptions[currentQuestion] || [];
+                isSelected = Array.isArray(currentSelected) && currentSelected.includes(option._id);
+              }
+              
+              return (
+                <motion.div
+                  key={option._id}
+                  whileTap={{ scale: 0.98 }}
+                  className={`p-3 border rounded-lg cursor-pointer ${
+                    isSelected
+                      ? 'bg-primary-50 border-primary-300'
+                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                  }`}
+                  onClick={() => handleOptionSelect(currentQuestion, option._id)}
+                >
+                  <div className="flex items-center">
+                    <div className={`w-5 h-5 mr-3 rounded-full border ${
+                      isSelected
+                        ? 'border-primary-600'
+                        : 'border-gray-300'
+                    }`}>
+                      {isSelected && (
+                        <div className="w-3 h-3 m-1 rounded-full bg-primary-600"></div>
+                      )}
+                    </div>
+                    <span className="text-gray-700">{option.text}</span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
         
         {/* Navigation buttons */}
         <div className="flex justify-between">
@@ -350,21 +414,33 @@ const TakeQuiz = () => {
       <div className="mt-6 bg-white rounded-lg shadow-md p-4">
         <h3 className="text-sm font-medium text-gray-700 mb-3">Question Navigator</h3>
         <div className="flex flex-wrap gap-2">
-          {quiz.questions.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentQuestion(index)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                currentQuestion === index
-                  ? 'bg-primary-600 text-white'
-                  : selectedOptions[index] !== undefined
-                  ? 'bg-green-100 text-green-800 border border-green-300'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {index + 1}
-            </button>
-          ))}
+          {quiz.questions.map((question, index) => {
+            let hasAnswer = false;
+            
+            if (question.type === 'text') {
+              hasAnswer = textAnswers[index] && textAnswers[index].trim();
+            } else if (question.type === 'single') {
+              hasAnswer = selectedOptions[index] !== undefined && selectedOptions[index] !== null;
+            } else if (question.type === 'multiple') {
+              hasAnswer = selectedOptions[index] && Array.isArray(selectedOptions[index]) && selectedOptions[index].length > 0;
+            }
+            
+            return (
+              <button
+                key={index}
+                onClick={() => setCurrentQuestion(index)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  currentQuestion === index
+                    ? 'bg-primary-600 text-white'
+                    : hasAnswer
+                    ? 'bg-green-100 text-green-800 border border-green-300'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {index + 1}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

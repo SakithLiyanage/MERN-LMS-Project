@@ -19,6 +19,7 @@ const TakeQuiz = () => {
   const [quizStarted, setQuizStarted] = useState(false);
   const [error, setError] = useState(null);
   const [resultId, setResultId] = useState(null); // Added missing state variable
+  const [startTime, setStartTime] = useState(null); // Add start time tracking
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -47,10 +48,16 @@ const TakeQuiz = () => {
             const initialAnswers = {};
             quizData.questions.forEach((q) => {
               if (q && q._id) {
-                initialAnswers[q._id] = q.type === 'multiple' ? [] : '';
+                // Initialize based on question type
+                if (q.type === 'multiple') {
+                  initialAnswers[q._id] = [];
+                } else {
+                  initialAnswers[q._id] = '';
+                }
               }
             });
             setAnswers(initialAnswers);
+            console.log('Initialized answers:', initialAnswers);
           } else {
             console.warn("Quiz has no questions or questions array is not valid");
           }
@@ -92,29 +99,79 @@ const TakeQuiz = () => {
   
   const handleStartQuiz = () => {
     setQuizStarted(true);
+    setStartTime(new Date().getTime());
   };
   
   const handleAnswerChange = (questionId, value, isMultiple = false) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
+    setAnswers(prev => {
+      if (isMultiple) {
+        // For multiple choice, toggle the value in an array
+        const currentAnswers = prev[questionId] || [];
+        const newAnswers = currentAnswers.includes(value)
+          ? currentAnswers.filter(v => v !== value)
+          : [...currentAnswers, value];
+        
+        return {
+          ...prev,
+          [questionId]: newAnswers
+        };
+      } else {
+        // For single choice or text, set the value directly
+        return {
+          ...prev,
+          [questionId]: value
+        };
+      }
+    });
   };
   
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      // Prepare answers as array of { question, selectedOption }
-      const formattedAnswers = Object.entries(answers).map(([questionId, selectedOption]) => ({
-        question: questionId,
-        selectedOption
-      }));
+      
+      // Prepare answers based on question type
+      const formattedAnswers = Object.entries(answers).map(([questionId, answer]) => {
+        const question = quiz.questions.find(q => q._id === questionId);
+        
+        if (!question) {
+          return null; // Skip invalid questions
+        }
+        
+        if (question.type === 'text') {
+          return {
+            question: questionId,
+            textAnswer: answer
+          };
+        } else if (question.type === 'multiple') {
+          // Convert option indices to option IDs
+          const selectedOptionIds = Array.isArray(answer) 
+            ? answer.map(index => question.options[index]?._id).filter(Boolean)
+            : [];
+          
+          return {
+            question: questionId,
+            selectedOptions: selectedOptionIds
+          };
+        } else {
+          // Single choice - convert option index to option ID
+          const selectedOptionId = question.options[answer]?._id;
+          
+          return {
+            question: questionId,
+            selectedOption: selectedOptionId
+          };
+        }
+      }).filter(Boolean); // Remove null entries
+      
+      console.log('Submitting answers:', formattedAnswers);
+      
       const res = await axios.post(
         `/api/quizzes/${id}/submit`,
-        { answers: formattedAnswers },
+        { answers: formattedAnswers, startTime },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
       if (res.data.success) {
         toast.success('Quiz submitted successfully!');
         navigate(`/quizzes/${id}/result`);
@@ -284,7 +341,7 @@ const TakeQuiz = () => {
         {/* Question */}
         <div className="p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">
-            {currentQuestion?.text || 'No question available'}
+            {currentQuestion?.questionText || 'No question available'}
           </h2>
           
           {currentQuestion?.image && (
@@ -301,17 +358,22 @@ const TakeQuiz = () => {
             {currentQuestion?.type === 'multiple' ? (
               // Multiple choice (checkboxes)
               <div className="space-y-3">
-                {currentQuestion.options?.map((option, idx) => (
-                  <label key={idx} className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                      checked={(answers[currentQuestion._id] || []).includes(idx)}
-                      onChange={() => handleAnswerChange(currentQuestion._id, idx, true)}
-                    />
-                    <span className="text-gray-700">{option}</span>
-                  </label>
-                ))}
+                {currentQuestion.options?.map((option, idx) => {
+                  const currentAnswers = answers[currentQuestion._id] || [];
+                  const isChecked = Array.isArray(currentAnswers) && currentAnswers.includes(idx);
+                  
+                  return (
+                    <label key={idx} className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                        checked={isChecked}
+                        onChange={() => handleAnswerChange(currentQuestion._id, idx, true)}
+                      />
+                      <span className="text-gray-700">{option.text}</span>
+                    </label>
+                  );
+                })}
               </div>
             ) : currentQuestion?.type === 'single' ? (
               // Single choice (radio buttons)
@@ -325,7 +387,7 @@ const TakeQuiz = () => {
                       onChange={() => handleAnswerChange(currentQuestion._id, idx)}
                       name={`question-${currentQuestion._id}`}
                     />
-                    <span className="text-gray-700">{option}</span>
+                    <span className="text-gray-700">{option.text}</span>
                   </label>
                 ))}
               </div>
@@ -380,21 +442,32 @@ const TakeQuiz = () => {
         <div className="px-6 py-4 border-t border-gray-200">
           <p className="text-sm text-gray-600 mb-2">Question Navigation:</p>
           <div className="flex flex-wrap gap-2">
-            {quiz.questions?.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentQuestionIndex(idx)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                  idx === currentQuestionIndex
-                    ? 'bg-primary-600 text-white'
-                    : answers[quiz.questions[idx]?._id]
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-200 text-gray-700'
-                }`}
-              >
-                {idx + 1}
-              </button>
-            ))}
+            {quiz.questions?.map((question, idx) => {
+              const questionAnswer = answers[question?._id];
+              let hasAnswer = false;
+              
+              if (question?.type === 'multiple') {
+                hasAnswer = Array.isArray(questionAnswer) && questionAnswer.length > 0;
+              } else {
+                hasAnswer = questionAnswer !== undefined && questionAnswer !== null && questionAnswer !== '';
+              }
+              
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentQuestionIndex(idx)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                    idx === currentQuestionIndex
+                      ? 'bg-primary-600 text-white'
+                      : hasAnswer
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

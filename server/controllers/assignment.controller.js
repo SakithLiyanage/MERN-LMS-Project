@@ -20,6 +20,9 @@ exports.getAssignments = async (req, res) => {
       assignments = await Assignment.find({ courseId: { $in: courseIds } })
         .populate('courseId', 'title code')
         .sort('-createdAt');
+      if (!assignments) {
+        return res.status(200).json({ success: true, count: 0, assignments: [] });
+      }
     } else if (req.user.role === 'student') {
       // Students see assignments for courses they're enrolled in
       const studentCourses = await Course.find({ students: req.user.id }).select('_id');
@@ -28,11 +31,17 @@ exports.getAssignments = async (req, res) => {
       assignments = await Assignment.find({ courseId: { $in: courseIds } })
         .populate('courseId', 'title code')
         .sort('-createdAt');
+      if (!assignments) {
+        return res.status(200).json({ success: true, count: 0, assignments: [] });
+      }
     } else {
       // Admins see all assignments
       assignments = await Assignment.find()
         .populate('courseId', 'title code')
         .sort('-createdAt');
+      if (!assignments) {
+        return res.status(200).json({ success: true, count: 0, assignments: [] });
+      }
     }
     
     res.status(200).json({

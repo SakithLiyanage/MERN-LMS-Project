@@ -372,59 +372,73 @@ const EditQuiz = () => {
                     />
                   </div>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Answer Options
-                    </label>
-                    <div className="space-y-3">
-                      {question.options.map((option, oIndex) => (
-                        <div key={oIndex} className="flex items-center">
-                          <button
-                            type="button"
-                            onClick={() => handleCorrectOptionChange(qIndex, oIndex)}
-                            className={`flex-shrink-0 mr-2 ${
-                              option.isCorrect
-                                ? 'text-green-600 hover:text-green-700'
-                                : 'text-gray-400 hover:text-gray-500'
-                            }`}
-                          >
-                            {option.isCorrect ? (
-                              <CheckCircleIcon className="h-5 w-5" />
-                            ) : (
-                              <XCircleIcon className="h-5 w-5" />
-                            )}
-                          </button>
-                          <input
-                            type="text"
-                            value={option.text}
-                            onChange={(e) => handleOptionChange(qIndex, oIndex, 'text', e.target.value)}
-                            className={`flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                              option.isCorrect
-                                ? 'border-green-300 bg-green-50'
-                                : 'border-gray-300'
-                            }`}
-                            placeholder={`Option ${oIndex + 1}`}
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeOption(qIndex, oIndex)}
-                            className="flex-shrink-0 ml-2 text-red-500 hover:text-red-700"
-                            disabled={question.options.length <= 2}
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addOption(qIndex)}
-                      className="mt-3 inline-flex items-center px-2 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Question Type*</label>
+                    <select
+                      value={question.type || 'single'}
+                      onChange={e => handleQuestionChange(qIndex, 'type', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     >
-                      <PlusCircleIcon className="h-4 w-4 mr-1" />
-                      Add Option
-                    </button>
+                      <option value="single">Single Choice (Radio)</option>
+                      <option value="multiple">Multiple Choice (Checkboxes)</option>
+                      <option value="text">Text Answer</option>
+                    </select>
                   </div>
+                  {question.type !== 'text' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Answer Options
+                      </label>
+                      <div className="space-y-3">
+                        {question.options.map((option, oIndex) => (
+                          <div key={oIndex} className="flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => handleCorrectOptionChange(qIndex, oIndex)}
+                              className={`flex-shrink-0 mr-2 ${
+                                option.isCorrect
+                                  ? 'text-green-600 hover:text-green-700'
+                                  : 'text-gray-400 hover:text-gray-500'
+                              }`}
+                            >
+                              {option.isCorrect ? (
+                                <CheckCircleIcon className="h-5 w-5" />
+                              ) : (
+                                <XCircleIcon className="h-5 w-5" />
+                              )}
+                            </button>
+                            <input
+                              type="text"
+                              value={option.text}
+                              onChange={e => handleOptionChange(qIndex, oIndex, 'text', e.target.value)}
+                              className={`flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                                option.isCorrect
+                                  ? 'border-green-300 bg-green-50'
+                                  : 'border-gray-300'
+                              }`}
+                              placeholder={`Option ${oIndex + 1}`}
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeOption(qIndex, oIndex)}
+                              className="flex-shrink-0 ml-2 text-red-500 hover:text-red-700"
+                              disabled={question.options.length <= 2}
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => addOption(qIndex)}
+                        className="mt-3 inline-flex items-center px-2 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      >
+                        <PlusCircleIcon className="h-4 w-4 mr-1" />
+                        Add Option
+                      </button>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Explanation (Optional)
