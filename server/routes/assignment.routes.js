@@ -8,7 +8,8 @@ const {
   deleteAssignment,
   submitAssignment,
   gradeSubmission,
-  getStudentAssignments
+  getStudentAssignments,
+  getAssignmentsForTeacher
 } = require('../controllers/assignment.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const multer = require('multer');
@@ -31,6 +32,9 @@ const upload = multer({ storage });
 
 // Student specific routes - must be before /:id route
 router.get('/student', protect, authorize('student'), getStudentAssignments);
+
+// Teacher specific route - must be before /:id route
+router.get('/teacher', protect, authorize('teacher', 'admin'), getAssignmentsForTeacher);
 
 // Basic routes
 router.route('/')

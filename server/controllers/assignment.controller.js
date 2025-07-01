@@ -485,3 +485,33 @@ exports.getStudentAssignments = async (req, res) => {
     });
   }
 };
+
+// @desc    Get assignments for current teacher
+// @route   GET /api/assignments/teacher
+// @access  Private/Teacher
+exports.getAssignmentsForTeacher = async (req, res) => {
+  try {
+    // Find all courses taught by this teacher
+    const teacherCourses = await Course.find({ teacher: req.user.id }).select('_id');
+    const courseIds = teacherCourses.map(course => course._id);
+    if (!courseIds.length) {
+      return res.status(200).json({ success: true, count: 0, assignments: [] });
+    }
+    // Find all assignments for these courses
+    const assignments = await Assignment.find({ courseId: { $in: courseIds } })
+      .populate('courseId', 'title code')
+      .sort('-createdAt');
+    res.status(200).json({
+      success: true,
+      count: assignments.length,
+      assignments
+    });
+  } catch (error) {
+    console.error('Error getting assignments for teacher:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

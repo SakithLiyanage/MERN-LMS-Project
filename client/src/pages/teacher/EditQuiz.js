@@ -79,10 +79,17 @@ const EditQuiz = () => {
 
   const handleCorrectOptionChange = (questionIndex, optionIndex) => {
     const updatedQuestions = [...questions];
-    const isCorrect = !updatedQuestions[questionIndex].options[optionIndex].isCorrect;
-    updatedQuestions[questionIndex].options.forEach((option, index) => {
-      option.isCorrect = index === optionIndex ? isCorrect : false;
-    });
+    const question = updatedQuestions[questionIndex];
+    if (question.type === 'multiple') {
+      // Toggle only the selected option
+      question.options[optionIndex].isCorrect = !question.options[optionIndex].isCorrect;
+    } else {
+      // Only one correct for single choice
+      const isCorrect = !question.options[optionIndex].isCorrect;
+      question.options.forEach((option, idx) => {
+        option.isCorrect = idx === optionIndex ? isCorrect : false;
+      });
+    }
     setQuestions(updatedQuestions);
   };
 
@@ -331,6 +338,11 @@ const EditQuiz = () => {
                   Add Question
                 </button>
               </div>
+              <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                <p className="text-sm text-yellow-800">
+                  <b>Tip:</b> For <b>Multiple Choice</b> questions, you can select more than one correct answer. For <b>Single Choice</b>, only one correct answer is allowed. For <b>Text Answer</b> questions, you can add multiple acceptable answers (case-insensitive match).
+                </p>
+              </div>
               <AnimatePresence>
                 {questions.map((question, qIndex) => (
                   <motion.div
@@ -392,6 +404,12 @@ const EditQuiz = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-3">
                           Answer Options
                         </label>
+                        {question.type === 'multiple' && (
+                          <div className="mb-2 text-xs text-blue-600 font-medium">You can select <b>multiple</b> correct answers for this question.</div>
+                        )}
+                        {question.type === 'single' && (
+                          <div className="mb-2 text-xs text-blue-600 font-medium">Only <b>one</b> correct answer can be selected for this question.</div>
+                        )}
                         <div className="space-y-3">
                           {question.options.map((option, oIndex) => (
                             <div key={oIndex} className="flex items-center">
@@ -441,6 +459,55 @@ const EditQuiz = () => {
                           <PlusCircleIcon className="h-4 w-4 mr-1" />
                           Add Option
                         </button>
+                      </div>
+                    )}
+                    {question.type === 'text' && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Correct Text Answer(s)*
+                        </label>
+                        {question.correctTextAnswers && question.correctTextAnswers.length > 0 && question.correctTextAnswers.map((ans, ansIdx) => (
+                          <div key={ansIdx} className="flex items-center mb-2">
+                            <input
+                              type="text"
+                              value={ans}
+                              onChange={e => {
+                                const updatedQuestions = [...questions];
+                                updatedQuestions[qIndex].correctTextAnswers[ansIdx] = e.target.value;
+                                setQuestions(updatedQuestions);
+                              }}
+                              className="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                              placeholder={`Correct Answer ${ansIdx + 1}`}
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updatedQuestions = [...questions];
+                                updatedQuestions[qIndex].correctTextAnswers.splice(ansIdx, 1);
+                                setQuestions(updatedQuestions);
+                              }}
+                              className="ml-2 text-red-500 hover:text-red-700"
+                              disabled={question.correctTextAnswers.length <= 1}
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedQuestions = [...questions];
+                            if (!updatedQuestions[qIndex].correctTextAnswers) updatedQuestions[qIndex].correctTextAnswers = [''];
+                            else updatedQuestions[qIndex].correctTextAnswers.push('');
+                            setQuestions(updatedQuestions);
+                          }}
+                          className="mt-2 inline-flex items-center px-2 py-1 border border-yellow-400 text-sm font-medium rounded-md text-yellow-800 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        >
+                          <PlusCircleIcon className="h-4 w-4 mr-1" />
+                          Add Another Answer
+                        </button>
+                        <p className="text-xs text-yellow-700 mt-1 font-medium">You can add multiple acceptable answers (case-insensitive match).</p>
                       </div>
                     )}
                     <div>

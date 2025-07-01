@@ -165,7 +165,8 @@ exports.getQuiz = async (req, res) => {
   try {
     console.log('Fetching quiz with ID:', req.params.id);
     const quiz = await Quiz.findById(req.params.id)
-      .populate('course', 'title code');
+      .populate('course', 'title code')
+      .populate('results.student', 'name email avatar');
     if (!quiz) {
       console.log('Quiz not found with ID:', req.params.id);
       return res.status(404).json({

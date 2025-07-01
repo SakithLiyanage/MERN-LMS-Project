@@ -405,7 +405,11 @@ const CreateQuiz = () => {
                   Add Question
                 </button>
               </div>
-              
+              <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                <p className="text-sm text-yellow-800">
+                  <b>Tip:</b> For <b>Multiple Choice</b> questions, you can select more than one correct answer. For <b>Single Choice</b>, only one correct answer is allowed. For <b>Text Answer</b> questions, you can add multiple acceptable answers (case-insensitive match).
+                </p>
+              </div>
               <AnimatePresence>
                 {questions.map((question, qIndex) => (
                   <motion.div
@@ -475,6 +479,12 @@ const CreateQuiz = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-3">
                           Answer Options
                         </label>
+                        {question.type === 'multiple' && (
+                          <div className="mb-2 text-xs text-blue-600 font-medium">You can select <b>multiple</b> correct answers for this question.</div>
+                        )}
+                        {question.type === 'single' && (
+                          <div className="mb-2 text-xs text-blue-600 font-medium">Only <b>one</b> correct answer can be selected for this question.</div>
+                        )}
                         <div className="space-y-3">
                           {question.options.map((option, oIndex) => (
                             <div key={oIndex} className="flex items-center">
@@ -583,12 +593,12 @@ const CreateQuiz = () => {
                             else updatedQuestions[qIndex].correctTextAnswers.push('');
                             setQuestions(updatedQuestions);
                           }}
-                          className="mt-2 inline-flex items-center px-2 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                          className="mt-2 inline-flex items-center px-2 py-1 border border-yellow-400 text-sm font-medium rounded-md text-yellow-800 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                         >
                           <PlusCircleIcon className="h-4 w-4 mr-1" />
                           Add Another Answer
                         </button>
-                        <p className="text-xs text-gray-500 mt-1">You can add multiple acceptable answers (case-insensitive match).</p>
+                        <p className="text-xs text-yellow-700 mt-1 font-medium">You can add multiple acceptable answers (case-insensitive match).</p>
                       </div>
                     )}
                   </motion.div>

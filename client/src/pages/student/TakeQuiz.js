@@ -99,9 +99,9 @@ const TakeQuiz = () => {
       });
     } else {
       // For single choice, replace the selection
-      setSelectedOptions({
-        ...selectedOptions,
-        [questionIndex]: optionId,
+    setSelectedOptions({
+      ...selectedOptions,
+      [questionIndex]: optionId,
       });
     }
   };
@@ -335,7 +335,7 @@ const TakeQuiz = () => {
             />
           </div>
         ) : (
-          <div className="space-y-3 mb-8">
+        <div className="space-y-3 mb-8">
             {currentQuestionData.options.map((option) => {
               let isSelected = false;
               
@@ -347,32 +347,32 @@ const TakeQuiz = () => {
               }
               
               return (
-                <motion.div
-                  key={option._id}
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-3 border rounded-lg cursor-pointer ${
+            <motion.div
+              key={option._id}
+              whileTap={{ scale: 0.98 }}
+              className={`p-3 border rounded-lg cursor-pointer ${
                     isSelected
-                      ? 'bg-primary-50 border-primary-300'
-                      : 'bg-white border-gray-200 hover:bg-gray-50'
-                  }`}
-                  onClick={() => handleOptionSelect(currentQuestion, option._id)}
-                >
-                  <div className="flex items-center">
-                    <div className={`w-5 h-5 mr-3 rounded-full border ${
+                  ? 'bg-primary-50 border-primary-300'
+                  : 'bg-white border-gray-200 hover:bg-gray-50'
+              }`}
+              onClick={() => handleOptionSelect(currentQuestion, option._id)}
+            >
+              <div className="flex items-center">
+                <div className={`w-5 h-5 mr-3 rounded-full border ${
                       isSelected
-                        ? 'border-primary-600'
-                        : 'border-gray-300'
-                    }`}>
+                    ? 'border-primary-600'
+                    : 'border-gray-300'
+                }`}>
                       {isSelected && (
-                        <div className="w-3 h-3 m-1 rounded-full bg-primary-600"></div>
-                      )}
-                    </div>
-                    <span className="text-gray-700">{option.text}</span>
-                  </div>
-                </motion.div>
+                    <div className="w-3 h-3 m-1 rounded-full bg-primary-600"></div>
+                  )}
+                </div>
+                <span className="text-gray-700">{option.text}</span>
+              </div>
+            </motion.div>
               );
             })}
-          </div>
+        </div>
         )}
         
         {/* Navigation buttons */}
@@ -426,19 +426,19 @@ const TakeQuiz = () => {
             }
             
             return (
-              <button
-                key={index}
-                onClick={() => setCurrentQuestion(index)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  currentQuestion === index
-                    ? 'bg-primary-600 text-white'
+            <button
+              key={index}
+              onClick={() => setCurrentQuestion(index)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                currentQuestion === index
+                  ? 'bg-primary-600 text-white'
                     : hasAnswer
-                    ? 'bg-green-100 text-green-800 border border-green-300'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {index + 1}
-              </button>
+                  ? 'bg-green-100 text-green-800 border border-green-300'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {index + 1}
+            </button>
             );
           })}
         </div>

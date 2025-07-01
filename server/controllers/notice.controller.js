@@ -113,7 +113,7 @@ exports.getNotices = async (req, res) => {
       const courseIds = teacherCourses.map(course => course._id);
       if (!courseIds.length) {
         return res.status(200).json({ success: true, count: 0, notices: [] });
-      }
+    }
       notices = await Notice.find({ course: { $in: courseIds } })
         .populate('course', 'title code')
         .sort('-createdAt');

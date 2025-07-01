@@ -106,18 +106,16 @@ const TakeQuiz = () => {
   const handleAnswerChange = (questionId, value, isMultiple = false) => {
     setAnswers(prev => {
       if (isMultiple) {
-        // For multiple choice, toggle the value in an array
+        // Store option IDs directly
         const currentAnswers = prev[questionId] || [];
         const newAnswers = currentAnswers.includes(value)
           ? currentAnswers.filter(v => v !== value)
           : [...currentAnswers, value];
-        
         return {
           ...prev,
           [questionId]: newAnswers
         };
       } else {
-        // For single choice or text, set the value directly
         return {
           ...prev,
           [questionId]: value
@@ -145,14 +143,10 @@ const TakeQuiz = () => {
             textAnswer: answer
           };
         } else if (question.type === 'multiple') {
-          // Convert option indices to option IDs
-          const selectedOptionIds = Array.isArray(answer) 
-            ? answer.map(index => question.options[index]?._id).filter(Boolean)
-            : [];
-          
+          // Use the array of option IDs directly
           return {
             question: questionId,
-            selectedOptions: selectedOptionIds
+            selectedOptions: Array.isArray(answer) ? answer : []
           };
         } else {
           // Single choice - convert option index to option ID
@@ -357,16 +351,16 @@ const TakeQuiz = () => {
           <div className="mt-6">
             {currentQuestion?.type === 'multiple' ? (
               <div className="space-y-3">
-                {currentQuestion.options?.map((option, idx) => {
+                {currentQuestion.options?.map((option) => {
                   const currentAnswers = answers[currentQuestion._id] || [];
-                  const isChecked = Array.isArray(currentAnswers) && currentAnswers.includes(idx);
+                  const isChecked = Array.isArray(currentAnswers) && currentAnswers.includes(option._id);
                   return (
-                    <label key={idx} className="flex items-center space-x-3 cursor-pointer">
+                    <label key={option._id} className="flex items-center space-x-3 cursor-pointer">
                       <input
                         type="checkbox"
                         className="h-5 w-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500 transition-all"
                         checked={isChecked}
-                        onChange={() => handleAnswerChange(currentQuestion._id, idx, true)}
+                        onChange={() => handleAnswerChange(currentQuestion._id, option._id, true)}
                       />
                       <span className="text-gray-700 font-medium">{option.text}</span>
                     </label>

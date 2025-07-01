@@ -90,15 +90,16 @@ export const AuthProvider = ({ children }) => {
   const login = async (formData) => {
     try {
       const res = await axios.post('/api/auth/login', formData);
-      
       localStorage.setItem('token', res.data.token);
       setToken(res.data.token);
       setUser(res.data.user);
       setIsAuthenticated(true);
       setError(null);
+      return true;
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Invalid credentials';
       setError(errorMessage);
+      return false;
     }
   };
 

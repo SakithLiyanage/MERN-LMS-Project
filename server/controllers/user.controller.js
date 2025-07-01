@@ -202,9 +202,15 @@ exports.getTeacherDashboard = async (req, res) => {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    // Debug: Log teacher id
+    console.log('Teacher ID:', user._id);
+
     // Fetch courses taught by teacher
     const courses = await require('../models/course.model').find({ teacher: user._id });
     const courseIds = courses.map(c => c._id);
+
+    // Debug: Log found courses
+    console.log('Courses found for teacher:', courses);
 
     // Fetch assignments, quizzes, notices for these courses
     const [assignments, quizzes, notices] = await Promise.all([
@@ -215,6 +221,9 @@ exports.getTeacherDashboard = async (req, res) => {
 
     // Student stats: total students across all courses
     const students = await require('../models/user.model').countDocuments({ courses: { $in: courseIds }, role: 'student' });
+
+    // Debug: Log student count
+    console.log('Student count for teacher courses:', students);
 
     res.json({
       success: true,
