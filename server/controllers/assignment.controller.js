@@ -265,16 +265,13 @@ exports.deleteAssignment = async (req, res) => {
 // @access  Private/Student
 exports.submitAssignment = async (req, res) => {
   try {
-    const { content, attachments } = req.body;
     const assignment = await Assignment.findById(req.params.id);
-    
     if (!assignment) {
       return res.status(404).json({
         success: false,
         message: 'Assignment not found'
       });
     }
-    
     // Check if due date has passed
     if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
       return res.status(400).json({
@@ -282,29 +279,33 @@ exports.submitAssignment = async (req, res) => {
         message: 'Assignment due date has passed'
       });
     }
-    
     // Check if student is enrolled in the course
     const course = await Course.findById(assignment.courseId);
     const isEnrolled = course.students.some(
       student => student.toString() === req.user.id
     );
-    
     if (!isEnrolled && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You are not enrolled in this course'
       });
     }
-    
+    // Prepare attachments array
+    let attachments = [];
+    if (req.file) {
+      attachments.push({
+        fileName: req.file.originalname,
+        fileUrl: req.file.filename,
+        fileType: req.file.mimetype,
+      });
+    }
     // Check if submission already exists
     const existingSubmission = assignment.submissions.find(
       sub => sub.student.toString() === req.user.id
     );
-    
     if (existingSubmission) {
       // Update existing submission
-      existingSubmission.content = content;
-      existingSubmission.attachments = attachments || [];
+      existingSubmission.attachments = attachments;
       existingSubmission.submittedAt = Date.now();
       // Reset grade info on resubmission
       existingSubmission.grade = undefined;
@@ -314,14 +315,11 @@ exports.submitAssignment = async (req, res) => {
       // Add new submission
       assignment.submissions.push({
         student: req.user.id,
-        content,
-        attachments: attachments || [],
+        attachments,
         submittedAt: Date.now()
       });
     }
-    
     await assignment.save();
-    
     res.status(200).json({
       success: true,
       message: 'Assignment submitted successfully',

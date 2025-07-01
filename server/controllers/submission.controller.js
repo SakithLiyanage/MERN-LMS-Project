@@ -1,6 +1,7 @@
 const Assignment = require('../models/assignment.model');
 const fs = require('fs');
 const path = require('path');
+const Course = require('../models/course.model');
 
 // @desc    Get submission by ID
 // @route   GET /api/submissions/:id
@@ -67,8 +68,20 @@ exports.gradeSubmission = async (req, res) => {
       return res.status(404).json({ message: 'Submission not found' });
     }
     
-    // Check if user is the teacher of the assignment
-    if (assignment.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Find the submission
+    const submission = assignment.submissions.id(submissionId);
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+    
+    // Fetch the course to check the teacher
+    const course = await Course.findById(assignment.courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    // Check if user is the teacher of the course
+    if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to grade this submission' });
     }
     
@@ -81,7 +94,6 @@ exports.gradeSubmission = async (req, res) => {
     }
     
     // Update the submission
-    const submission = assignment.submissions.id(submissionId);
     submission.grade = numGrade;
     submission.feedback = feedback || '';
     submission.graded = true;

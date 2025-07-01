@@ -31,16 +31,24 @@ const AssignmentDetails = () => {
   
   // Check if student has already submitted
   const studentSubmission = assignment?.submissions?.find(
-    sub => sub.student?._id === user?._id
+    sub => sub && sub.student && sub.student._id === user?._id
   );
   
   const isDeadlinePassed = assignment?.deadline && moment().isAfter(moment(assignment.deadline));
   
+  const now = moment();
+  const dueDate = assignment?.deadline ? moment(assignment.deadline) : null;
+  const canUpdateSubmission =
+    studentSubmission &&
+    dueDate &&
+    now.isBefore(dueDate) &&
+    now.diff(moment(studentSubmission.submittedAt), 'hours') < 1;
+  
   useEffect(() => {
     const fetchAssignmentDetails = async () => {
       try {
-        const res = await axios.get(`/api/assignments/${id}`);
-        setAssignment(res.data.assignment);
+        const res = await axios.get(`${BACKEND_URL}/api/assignments/${id}`);
+        setAssignment(res.data.assignment || res.data.data);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching assignment details:', error);
@@ -58,36 +66,23 @@ const AssignmentDetails = () => {
   
   const handleSubmitAssignment = async (e) => {
     e.preventDefault();
-    
     if (!submissionFile) {
       toast.error('Please select a file to submit');
       return;
     }
-    
     setSubmitting(true);
-    
     try {
       const formData = new FormData();
       formData.append('file', submissionFile);
-      
-      const res = await axios.post(`/api/assignments/${id}/submit`, formData, {
+      const res = await axios.post(`${BACKEND_URL}/api/assignments/${id}/submit`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
-      // Update the local state with the new submission
-      setAssignment(prevState => ({
-        ...prevState,
-        submissions: [...prevState.submissions, res.data.submission],
-      }));
-      
       toast.success('Assignment submitted successfully!');
       setSubmissionFile(null);
-      
-      // Refresh the assignment data
-      const refreshRes = await axios.get(`/api/assignments/${id}`);
-      setAssignment(refreshRes.data.assignment);
+      // Automatically redirect/refresh to show the updated submission
+      window.location.reload();
     } catch (error) {
       console.error('Error submitting assignment:', error);
       toast.error(error.response?.data?.message || 'Error submitting assignment');
@@ -98,7 +93,8 @@ const AssignmentDetails = () => {
   
   const handleGradeSubmission = async (submissionId, grade, feedback) => {
     try {
-      await axios.put(`/api/submissions/${submissionId}/grade`, { grade, feedback });
+      console.log('Grading submission:', { submissionId, grade, feedback });
+      await axios.put(`${BACKEND_URL}/api/submissions/${submissionId}/grade`, { grade, feedback });
       
       // Update the local state with the new grade
       setAssignment(prevState => ({
@@ -117,11 +113,11 @@ const AssignmentDetails = () => {
     }
   };
   
-  const handleDownload = async (fileName, originalName) => {
+  const handleDownload = async (fileUrl, fileName) => {
     const token = localStorage.getItem('token');
     try {
       const response = await axios.get(
-        `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileName)}`,
+        `${BACKEND_URL}/api/materials/download/${encodeURIComponent(fileUrl)}`,
         {
           responseType: 'blob',
           headers: { Authorization: `Bearer ${token}` }
@@ -130,7 +126,7 @@ const AssignmentDetails = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', originalName || fileName);
+      link.setAttribute('download', fileName || fileUrl);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -241,75 +237,51 @@ const AssignmentDetails = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Submission</h2>
           
-          {studentSubmission ? (
-            <div className="space-y-4">
-              <div className="flex items-start">
-                <DocumentTextIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <div>
-                  <button
-                    onClick={() => handleDownload(studentSubmission.file, '')}
-                    className="text-primary-600 hover:underline"
-                  >
-                    {studentSubmission.file.split('/').pop()}
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Submitted: {moment(studentSubmission.submittedAt).format('MMM D, YYYY [at] h:mm A')}
-                  </p>
-                </div>
-              </div>
-              
-              {studentSubmission.graded && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                  <div className="flex items-center">
-                    <span className="font-medium text-gray-700 mr-2">Grade:</span>
-                    <span className="text-lg font-bold">
-                      {studentSubmission.grade} / {assignment.totalPoints}
-                    </span>
+          {studentSubmission && studentSubmission.attachments && studentSubmission.attachments.length > 0 ? (
+            <div className="mt-4">
+              <p className="font-medium">Your Uploaded File:</p>
+              <button
+                onClick={() => handleDownload(studentSubmission.attachments[0].fileUrl, studentSubmission.attachments[0].fileName)}
+                className="text-primary-600 hover:underline"
+              >
+                {studentSubmission.attachments[0].fileName || 'No file'}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Submitted: {moment(studentSubmission.submittedAt).format('MMM D, YYYY [at] h:mm A')}
+              </p>
+              {typeof studentSubmission.grade !== 'undefined' && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded shadow">
+                  <div className="text-lg font-bold text-green-700">
+                    Grade: {studentSubmission.grade} / {assignment.totalPoints}
                   </div>
                   {studentSubmission.feedback && (
-                    <div className="mt-2">
-                      <span className="font-medium text-gray-700">Feedback:</span>
-                      <p className="mt-1 text-gray-600">{studentSubmission.feedback}</p>
+                    <div className="mt-2 text-gray-700">
+                      <span className="font-medium">Feedback:</span> {studentSubmission.feedback}
                     </div>
                   )}
                 </div>
               )}
             </div>
-          ) : isDeadlinePassed ? (
-            <div className="bg-red-50 p-4 rounded-md">
-              <p className="text-red-700">
-                The deadline for this assignment has passed. You can no longer submit.
-              </p>
-            </div>
           ) : (
-            <form onSubmit={handleSubmitAssignment}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Upload your work
-                  </label>
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Upload a file (PDF, Word, etc.) for your assignment submission.
-                  </p>
-                </div>
-                
-                <div>
-                  <button
-                    type="submit"
-                    disabled={submitting || !submissionFile}
-                    className={`w-full py-2 px-4 border border-transparent rounded-md font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                      (submitting || !submissionFile) ? 'opacity-70 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {submitting ? 'Submitting...' : 'Submit Assignment'}
-                  </button>
-                </div>
-              </div>
+            <div className="mt-4 text-gray-400">No file to download</div>
+          )}
+          
+          {canUpdateSubmission && (
+            <form onSubmit={handleSubmitAssignment} className="mt-4">
+              <label className="block mb-2 font-medium">Update your submission:</label>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="mb-2"
+                accept=".pdf,.doc,.docx,.txt"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                disabled={submitting}
+              >
+                {submitting ? 'Updating...' : 'Update Submission'}
+              </button>
             </form>
           )}
         </div>
@@ -321,70 +293,59 @@ const AssignmentDetails = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Student Submissions</h2>
           
           {assignment.submissions && assignment.submissions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submission
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date Submitted
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Grade
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {assignment.submissions.map((submission) => (
-                    <tr key={submission._id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {submission.student?.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {submission.student?.email}
-                            </div>
-                          </div>
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Student Submissions</h2>
+              <ul className="divide-y divide-gray-200">
+                {assignment.submissions.map((sub, idx) => {
+                  const fileUrl = sub.attachments && sub.attachments[0] ? sub.attachments[0].fileUrl : null;
+                  const fileName = sub.attachments && sub.attachments[0] ? sub.attachments[0].fileName : null;
+                  return (
+                    <li key={sub._id || idx} className="py-4 flex flex-col md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <div className="font-medium">{sub.student?.name || 'Unknown Student'}</div>
+                        <div className="text-xs text-gray-500">{sub.student?.email}</div>
+                        <div className="mt-1">
+                          {fileUrl ? (
+                            <button
+                              onClick={() => handleDownload(fileUrl, fileName)}
+                              className="text-primary-600 hover:underline"
+                            >
+                              {fileName || 'No file'}
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">No file to download</span>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => handleDownload(submission.file, '')}
-                          className="text-primary-600 hover:underline text-sm"
-                        >
-                          View Submission
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {moment(submission.submittedAt).format('MMM D, YYYY [at] h:mm A')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {submission.graded ? (
-                          <div className="text-sm text-gray-900">
-                            {submission.grade} / {assignment.totalPoints}
-                            <p className="text-xs text-gray-500">
-                              {submission.feedback ? `"${submission.feedback}"` : 'No feedback provided'}
-                            </p>
-                          </div>
-                        ) : (
-                          <GradeSubmissionForm
-                            submissionId={submission._id}
+                        <div className="text-xs text-gray-500 mt-1">
+                          Submitted: {sub.submittedAt ? moment(sub.submittedAt).format('MMM D, YYYY [at] h:mm A') : ''}
+                        </div>
+                      </div>
+                      <div className="mt-2 md:mt-0">
+                        {!sub.graded ? (
+                          <ModernGradeSubmissionForm
+                            submissionId={sub._id}
                             totalPoints={assignment.totalPoints}
                             onGradeSubmit={handleGradeSubmission}
+                            defaultGrade={sub.grade}
+                            defaultFeedback={sub.feedback}
                           />
+                        ) : (
+                          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded shadow">
+                            <div className="text-lg font-bold text-green-700">
+                              Grade: {sub.grade} / {assignment.totalPoints}
+                            </div>
+                            {sub.feedback && (
+                              <div className="mt-2 text-gray-700">
+                                <span className="font-medium">Feedback:</span> {sub.feedback}
+                              </div>
+                            )}
+                          </div>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           ) : (
             <div className="text-center py-4">
@@ -397,81 +358,53 @@ const AssignmentDetails = () => {
   );
 };
 
-// Grade Submission Form Component
-const GradeSubmissionForm = ({ submissionId, totalPoints, onGradeSubmit }) => {
-  const [grade, setGrade] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+// Modern grading form for teachers
+const ModernGradeSubmissionForm = ({ submissionId, totalPoints, onGradeSubmit, defaultGrade, defaultFeedback }) => {
+  const [grade, setGrade] = useState(defaultGrade || '');
+  const [feedback, setFeedback] = useState(defaultFeedback || '');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const numericGrade = Number(grade);
-    
-    if (isNaN(numericGrade) || numericGrade < 0 || numericGrade > totalPoints) {
-      toast.error(`Please enter a valid grade between 0 and ${totalPoints}`);
+    if (grade === '' || isNaN(grade) || grade < 0 || grade > totalPoints) {
+      alert(`Grade must be a number between 0 and ${totalPoints}`);
       return;
     }
-    
-    onGradeSubmit(submissionId, numericGrade, feedback);
-    setIsOpen(false);
+    setSubmitting(true);
+    await onGradeSubmit(submissionId, grade, feedback);
+    setSubmitting(false);
   };
 
   return (
-    <div>
-      {!isOpen ? (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="px-3 py-1 text-xs rounded-md text-white bg-primary-600 hover:bg-primary-700"
-        >
-          Grade
-        </button>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label htmlFor="grade" className="block text-xs font-medium text-gray-700">
-              Grade (0-{totalPoints})
-            </label>
-            <input
-              type="number"
-              id="grade"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              min="0"
-              max={totalPoints}
-              required
-              className="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="feedback" className="block text-xs font-medium text-gray-700">
-              Feedback (optional)
-            </label>
-            <textarea
-              id="feedback"
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              rows="2"
-              className="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-            ></textarea>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="px-2 py-1 text-xs border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-2 py-1 text-xs rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
-            >
-              Submit
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-gray-50 p-4 rounded shadow">
+      <div className="flex items-center gap-2">
+        <label className="font-medium">Grade:</label>
+        <input
+          type="number"
+          min={0}
+          max={totalPoints}
+          value={grade}
+          onChange={e => setGrade(e.target.value)}
+          className="w-20 px-2 py-1 border rounded"
+          required
+        />
+        <span className="text-gray-500">/ {totalPoints}</span>
+      </div>
+      <textarea
+        value={feedback}
+        onChange={e => setFeedback(e.target.value)}
+        placeholder="Feedback (optional)"
+        className="px-2 py-1 border rounded resize-none"
+        rows={2}
+      />
+      <button
+        type="submit"
+        className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 font-semibold"
+        disabled={submitting}
+      >
+        {submitting ? 'Grading...' : 'Submit Grade'}
+      </button>
+    </form>
   );
 };
 

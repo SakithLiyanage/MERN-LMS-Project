@@ -314,13 +314,18 @@ exports.getMaterial = async (req, res) => {
 exports.downloadMaterial = async (req, res) => {
   try {
     const fileName = req.params.fileName;
-    const filePath = path.join(__dirname, '..', 'uploads', 'materials', fileName);
-
+    // Try assignments first
+    let filePath = path.join(__dirname, '..', 'uploads', 'assignments', fileName);
+    console.log('Trying to download (assignments):', fileName, 'at', filePath);
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, message: 'File not found' });
+      // Fallback to materials
+      filePath = path.join(__dirname, '..', 'uploads', 'materials', fileName);
+      console.log('Trying to download (materials):', fileName, 'at', filePath);
+      if (!fs.existsSync(filePath)) {
+        console.log('File not found:', fileName);
+        return res.status(404).json({ success: false, message: 'File not found' });
+      }
     }
-
-    // Optionally, set the download name to the original name if you store it
     res.download(filePath, fileName);
   } catch (error) {
     console.error('Error downloading material:', error);
