@@ -15,6 +15,7 @@ const quizRoutes = require('./routes/quiz.routes');
 const materialRoutes = require('./routes/material.routes');
 const submissionRoutes = require('./routes/submission.routes');
 const activityRoutes = require('./routes/activity.routes'); // Added activities routes
+const notificationRoutes = require('./routes/notification.routes');
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/activities', activityRoutes); // Added activities routes
+app.use('/api/notifications', notificationRoutes);
 
 // Global error handler for any uncaught errors in the routes
 app.use('/api/*', (error, req, res, next) => {

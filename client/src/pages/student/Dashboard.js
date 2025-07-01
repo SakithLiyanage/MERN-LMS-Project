@@ -60,7 +60,9 @@ const StudentDashboard = () => {
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
     .slice(0, 3);
 
-  // Stats for dashboard
+  // Replace the 'Learning Progress' stat with 'Completed Assignments'
+  const completedAssignments = safeAssignments.filter(a => a.submissions?.some(sub => sub.student.toString() === user?._id)).length;
+  const totalAssignments = safeAssignments.length;
   const stats = [
     {
       title: 'Enrolled Courses',
@@ -81,8 +83,8 @@ const StudentDashboard = () => {
       color: 'bg-green-100',
     },
     {
-      title: 'Learning Progress',
-      value: '65%', // This could be calculated based on completed work
+      title: 'Completed Assignments',
+      value: `${completedAssignments} / ${totalAssignments}`,
       icon: <AcademicCapIcon className="h-6 w-6 text-purple-500" />,
       color: 'bg-purple-100',
     },

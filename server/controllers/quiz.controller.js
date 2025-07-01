@@ -1,5 +1,6 @@
 const Quiz = require('../models/quiz.model');
 const Course = require('../models/course.model');
+const Notification = require('../models/notification.model');
 const mongoose = require('mongoose');
 
 // @desc    Create new quiz
@@ -49,6 +50,15 @@ exports.createQuiz = async (req, res) => {
       { $push: { quizzes: quiz._id } },
       { new: true }
     );
+    
+    // Notify all students in the course
+    for (const studentId of courseDoc.students) {
+      await Notification.create({
+        user: studentId,
+        text: `A new quiz "${quiz.title}" has been posted in ${courseDoc.title}.`,
+        link: `/quizzes/${quiz._id}`
+      });
+    }
     
     res.status(201).json({
       success: true,

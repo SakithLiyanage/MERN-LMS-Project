@@ -1,6 +1,7 @@
 const Assignment = require('../models/assignment.model');
 const Course = require('../models/course.model');
 const User = require('../models/user.model');
+const Notification = require('../models/notification.model');
 
 // @desc    Get all assignments
 // @route   GET /api/assignments
@@ -140,6 +141,15 @@ exports.createAssignment = async (req, res) => {
     // Add assignment to course
     course.assignments.push(assignment._id);
     await course.save();
+    
+    // Notify all students in the course
+    for (const studentId of course.students) {
+      await Notification.create({
+        user: studentId,
+        text: `A new assignment "${assignment.title}" has been posted in ${course.title}.`,
+        link: `/assignments/${assignment._id}`
+      });
+    }
     
     res.status(201).json({
       success: true,

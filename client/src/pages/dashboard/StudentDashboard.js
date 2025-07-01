@@ -50,8 +50,24 @@ const StudentDashboard = () => {
     fetchDashboard();
   }, []);
 
+  // After fetching assignments, quizzes, quizResults, etc. from backend:
+  // Mark assignments as submitted if the student has a submission
+  const userId = user?._id;
+  const assignmentsWithStatus = assignments.map(a => ({
+    ...a,
+    submitted: a.submissions && Array.isArray(a.submissions)
+      ? a.submissions.some(sub => sub.student?.toString() === userId)
+      : false
+  }));
+  // Mark quizzes as completed if the student has a quiz result
+  const quizIdsWithResults = new Set((quizResults || []).map(qr => qr.quizId?.toString()));
+  const quizzesWithStatus = quizzes.map(q => ({
+    ...q,
+    completed: quizIdsWithResults.has(q._id?.toString())
+  }));
+
   // Defensive: always ensure assignments is an array
-  const safeAssignments = Array.isArray(assignments) ? assignments : [];
+  const safeAssignments = Array.isArray(assignmentsWithStatus) ? assignmentsWithStatus : [];
 
   if (loading) {
     return (
@@ -171,9 +187,9 @@ const StudentDashboard = () => {
             <Link to="/quizzes" className="text-base text-primary-500 hover:text-secondary-500 font-semibold">View all</Link>
           </div>
           <div className="border-t border-neutral-50">
-            {quizzes.length > 0 ? (
+            {quizzesWithStatus.length > 0 ? (
               <ul className="divide-y divide-neutral-50">
-                {quizzes.slice(0, 5).map((quiz, idx) => (
+                {quizzesWithStatus.slice(0, 5).map((quiz, idx) => (
                   <motion.li key={quiz._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + idx * 0.05 }} className="px-4 py-4 sm:px-6 hover:bg-accent-yellow/10 flex justify-between items-center rounded-xl transition-all">
                     <div>
                       <p className="font-semibold text-text-dark">{quiz.title}</p>

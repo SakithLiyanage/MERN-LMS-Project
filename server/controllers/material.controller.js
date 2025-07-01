@@ -2,6 +2,7 @@ const Material = require('../models/material.model');
 const Course = require('../models/course.model');
 const fs = require('fs');
 const path = require('path');
+const Notification = require('../models/notification.model');
 
 // @desc    Get all materials for a course
 // @route   GET /api/materials/course/:courseId
@@ -124,6 +125,15 @@ exports.createMaterial = async (req, res) => {
     // Add material to course
     course.materials.push(material._id);
     await course.save();
+    
+    // Notify all students in the course
+    for (const studentId of course.students) {
+      await Notification.create({
+        user: studentId,
+        text: `A new material "${material.title}" has been posted in ${course.title}.`,
+        link: `/materials/${material._id}`
+      });
+    }
     
     res.status(201).json({
       success: true,

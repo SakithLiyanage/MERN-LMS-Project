@@ -2,6 +2,7 @@ const Notice = require('../models/notice.model');
 const Course = require('../models/course.model');
 const fs = require('fs');
 const path = require('path');
+const Notification = require('../models/notification.model');
 
 // Helper function to create directories if they don't exist
 const ensureDirectoryExists = (directory) => {
@@ -76,6 +77,15 @@ exports.createNotice = async (req, res) => {
       pinned: pinned || false,
       attachments: files
     });
+    
+    // Notify all students in the course
+    for (const studentId of course.students) {
+      await Notification.create({
+        user: studentId,
+        text: `A new notice "${notice.title}" has been posted in ${course.title}.`,
+        link: `/notices/${notice._id}`
+      });
+    }
     
     res.status(201).json({
       success: true,

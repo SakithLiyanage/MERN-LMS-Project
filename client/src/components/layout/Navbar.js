@@ -9,14 +9,12 @@ import {
   XIcon
 } from '@heroicons/react/outline';
 import AuthContext from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useContext(AuthContext);
   const location = useLocation();
-  const [notifications] = useState([
-    { id: 1, text: 'New assignment posted', read: false },
-    { id: 2, text: 'Your quiz was graded', read: false },
-  ]);
+  const { notifications, markAsRead } = useNotifications();
 
   const navLinks = [
     { name: 'Home', to: '/', public: true },
@@ -108,8 +106,11 @@ const Navbar = () => {
                           </div>
                           {notifications.length > 0 ? (
                             notifications.map(notification => (
-                              <Menu.Item key={notification.id}>
-                                <div className={`block px-4 py-2 text-sm ${notification.read ? 'text-gray-500' : 'text-gray-700 font-medium bg-blue-50'}`}>
+                              <Menu.Item key={notification._id}>
+                                <div
+                                  className={`block px-4 py-2 text-sm cursor-pointer ${notification.read ? 'text-gray-500' : 'text-gray-700 font-medium bg-blue-50'}`}
+                                  onClick={() => markAsRead(notification._id)}
+                                >
                                   {notification.text}
                                 </div>
                               </Menu.Item>

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AuthContext from '../context/AuthContext';
@@ -9,9 +9,35 @@ import {
   CheckCircleIcon,
   ArrowRightIcon // Added missing import
 } from '@heroicons/react/outline';
+import Footer from '../components/layout/Footer';
 
 const Home = () => {
   const { isAuthenticated, user } = useContext(AuthContext);
+  // Parallax state
+  const [parallaxY, setParallaxY] = useState(0);
+  const [parallaxY2, setParallaxY2] = useState(0);
+  const [parallaxY3, setParallaxY3] = useState(0);
+  const heroRef = useRef(null);
+  const featuresRef = useRef(null);
+  const benefitsRef = useRef(null);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (heroRef.current) {
+        const rect = heroRef.current.getBoundingClientRect();
+        setParallaxY(Math.max(0, -rect.top * 0.3));
+      }
+      if (featuresRef.current) {
+        const rect = featuresRef.current.getBoundingClientRect();
+        setParallaxY2(Math.max(0, -rect.top * 0.15));
+      }
+      if (benefitsRef.current) {
+        const rect = benefitsRef.current.getBoundingClientRect();
+        setParallaxY3(Math.max(0, -rect.top * 0.1));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Animations
   const containerVariants = {
@@ -65,96 +91,90 @@ const Home = () => {
     }
   ];
   
+  const featureImages = [
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80', // Digital Course Materials
+    'https://images.unsplash.com/photo-1503676382389-4809596d5290?auto=format&fit=crop&w=600&q=80', // Collaborative Learning
+    'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80', // Real-time Quizzes
+    'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=600&q=80', // Community
+  ];
+  
   return (
     <div className="bg-white">
       {/* Hero Section */}
       <motion.section 
-        className="relative bg-gradient-to-br from-primary-600 to-secondary-700 py-16 md:py-24"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
+        ref={heroRef}
+        className="relative min-h-[70vh] flex flex-col justify-center items-center text-center overflow-hidden bg-gradient-to-br from-primary-50 via-white to-secondary-50"
       >
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="md:w-1/2 mb-10 md:mb-0">
-              <motion.h1 
-                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                Modern Learning for the Digital Classroom
-              </motion.h1>
-              <motion.p 
-                className="text-lg md:text-xl text-primary-100 mb-8 max-w-lg"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                A comprehensive learning management system designed to enhance teaching and learning experiences in a digital environment.
-              </motion.p>
-              
-              <motion.div
-                className="flex flex-wrap gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                {isAuthenticated ? (
-                  <Link
-                    to={user?.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard'}
-                    className="px-6 py-3 bg-white text-primary-700 rounded-md font-medium hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  >
-                    Go to Dashboard
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      to="/register"
-                      className="px-6 py-3 bg-white text-primary-700 rounded-md font-medium hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      Get Started
-                    </Link>
-                    <Link
-                      to="/login"
-                      className="px-6 py-3 bg-transparent border border-white text-white rounded-md font-medium hover:bg-white/10 transition-colors"
-                    >
-                      Log In
-                    </Link>
-                  </>
-                )}
-              </motion.div>
-            </div>
-            
-            <motion.div 
-              className="md:w-1/2"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary-500/20 to-secondary-500/20 rounded-3xl transform rotate-3"></div>
-                <img
-                  src="/img/dashboard-preview.png"
-                  alt="LMS Dashboard Preview"
-                  className="relative z-10 rounded-2xl shadow-2xl"
-                />
-              </div>
-            </motion.div>
-          </div>
-        </div>
+        {/* Animated parallax SVG background */}
+        <motion.svg
+          className="absolute top-0 left-0 w-full h-full z-0"
+          style={{ y: parallaxY * 0.3 }}
+          viewBox="0 0 1440 320"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+        >
+          <path
+            fill="#e0f2fe"
+            fillOpacity="1"
+            d="M0,160L60,170.7C120,181,240,203,360,197.3C480,192,600,160,720,133.3C840,107,960,85,1080,101.3C1200,117,1320,171,1380,197.3L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+          />
+        </motion.svg>
+        {/* Floating animated icons */}
+        <motion.div
+          className="absolute left-10 top-24 z-10"
+          animate={{ y: [0, -20, 0] }}
+          transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+        >
+          <svg width="48" height="48" fill="none"><circle cx="24" cy="24" r="24" fill="#38bdf8" fillOpacity="0.2" /></svg>
+        </motion.div>
+        <motion.div
+          className="absolute right-10 bottom-24 z-10"
+          animate={{ y: [0, 20, 0] }}
+          transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
+        >
+          <svg width="36" height="36" fill="none"><rect width="36" height="36" rx="8" fill="#facc15" fillOpacity="0.18" /></svg>
+        </motion.div>
+        {/* Hero content with parallax */}
+        <motion.div
+          className="relative z-20 flex flex-col items-center"
+          style={{ y: parallaxY * 0.2 }}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+        >
+          <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 drop-shadow-lg">
+            Modern Learning, <span className="text-primary-500">Reimagined</span>
+          </h1>
+          <p className="text-lg md:text-2xl text-gray-700 mb-8 max-w-2xl mx-auto">
+            Experience a next-generation LMS with animated, interactive, and visually stunning features for students and teachers.
+          </p>
+          <a
+            href={isAuthenticated ? "/dashboard" : "/register"}
+            className="inline-block px-8 py-4 rounded-full bg-primary-500 text-white font-semibold text-lg shadow-lg hover:bg-primary-600 transition-all duration-300 backdrop-blur-md"
+          >
+            {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+          </a>
+        </motion.div>
       </motion.section>
 
       {/* Features Section */}
-      <motion.section 
-        className="py-16 md:py-24"
+      <motion.section
+        ref={featuresRef}
+        className="py-16 md:py-24 relative"
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Parallax animated background shape */}
+        <motion.div
+          className="absolute -top-32 left-1/2 w-96 h-96 bg-gradient-to-br from-primary-200 to-accent-yellow rounded-full blur-3xl opacity-30 z-0"
+          style={{ y: parallaxY2 * 0.5 }}
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             className="text-center mb-16"
             variants={itemVariants}
@@ -170,13 +190,26 @@ const Home = () => {
               <motion.div
                 key={index}
                 variants={itemVariants}
-                className="bg-white rounded-xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                whileHover={{ scale: 1.04, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.2)' }}
+                className="bg-white/80 backdrop-blur-lg rounded-xl p-8 border border-primary-50 shadow-card hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row items-center gap-6"
+                style={{ y: parallaxY2 * (0.1 + index * 0.05) }}
               >
-                <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600 mb-5">
-                  {feature.icon}
+                <motion.img
+                  src={featureImages[index]}
+                  alt={feature.title}
+                  className="w-28 h-28 object-cover rounded-2xl shadow-lg mb-4 md:mb-0 md:mr-6"
+                  style={{ y: parallaxY2 * 0.15 }}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + index * 0.1, duration: 0.7, type: 'spring' }}
+                />
+                <div>
+                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600 mb-5">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.description}</p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -249,36 +282,45 @@ const Home = () => {
       </motion.section>
 
       {/* Testimonials */}
-      <motion.section 
-        className="py-16 md:py-24"
+      <motion.section
+        className="py-16 md:py-24 bg-white relative overflow-hidden"
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-16"
-            variants={itemVariants}
+        {/* Parallax animated background shape */}
+        <motion.div
+          className="absolute -top-24 right-1/4 w-80 h-80 bg-gradient-to-br from-accent-green to-primary-100 rounded-full blur-3xl opacity-30 z-0"
+          style={{ y: parallaxY3 * 0.7 }}
+        />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.h2
+            className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">What People Say</h2>
-            <p className="max-w-2xl mx-auto text-lg text-gray-600">
-              Hear from our users about how our platform has transformed their teaching and learning experiences.
-            </p>
-          </motion.div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {testimonials.map((testimonial, index) => (
+            What Our Users Say
+          </motion.h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, idx) => (
               <motion.div
-                key={index}
-                variants={itemVariants}
-                className="bg-white p-8 rounded-xl shadow-sm border border-gray-100"
+                key={idx}
+                className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-primary-50 shadow-card hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center"
+                style={{ y: parallaxY3 * (0.1 + idx * 0.08) }}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 + idx * 0.1 }}
               >
-                <p className="text-gray-700 italic mb-6">"{testimonial.quote}"</p>
-                <div>
-                  <p className="font-semibold text-gray-900">{testimonial.author}</p>
-                  <p className="text-gray-600 text-sm">{testimonial.role}</p>
-                </div>
+                <img
+                  src={testimonial.avatar}
+                  alt={testimonial.name}
+                  className="w-20 h-20 object-cover rounded-full shadow-lg mb-4 border-4 border-primary-100"
+                />
+                <p className="text-gray-700 mb-4 italic">“{testimonial.quote}”</p>
+                <div className="font-semibold text-primary-700">{testimonial.name}</div>
+                <div className="text-sm text-gray-500">{testimonial.role}</div>
               </motion.div>
             ))}
           </div>
@@ -307,6 +349,23 @@ const Home = () => {
           </Link>
         </div>
       </motion.section>
+
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.2, scale: 1 }}
+          transition={{ duration: 1.2, delay: 0.2 }}
+          className="absolute left-1/4 top-0 w-96 h-96 bg-gradient-to-br from-accent-yellow to-primary-400 rounded-full blur-3xl opacity-60 animate-pulse"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.15, scale: 1 }}
+          transition={{ duration: 1.2, delay: 0.4 }}
+          className="absolute right-1/4 bottom-0 w-96 h-96 bg-gradient-to-tr from-secondary-500 to-primary-600 rounded-full blur-3xl opacity-60 animate-pulse"
+        />
+      </div>
+
+      <Footer />
     </div>
   );
 };
